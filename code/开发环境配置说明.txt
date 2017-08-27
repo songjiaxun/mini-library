@@ -1,0 +1,4 @@
+安装python3.5
+联网，双击“Python第三方库安装.bat”
+右键*.py文件，选择Edit with IDLE
+修改代码之后，双击“生成exe文件.bat”，在dist目录下生成exe文件，剪切至根目录下即可
