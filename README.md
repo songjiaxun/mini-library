@@ -20,15 +20,15 @@
 
 ```terminal
     git init #安装git后初始化
-    进入https://github.com/jiaxunsongucb/mini-library，点击右上角的fork按钮，将仓库复制到自己的github账号下
-    进入到自己的账号下的mini-library，点击绿色的“Clone or download”按钮服制下载链接
-    回到本地：
+    #进入https://github.com/jiaxunsongucb/mini-library，点击右上角的fork按钮，将仓库复制到自己的github账号下
+    #进入到自己的账号下的mini-library，点击绿色的“Clone or download”按钮服制下载链接
+    #回到本地：
     git clone https://github.com/<username>/mini-library.git #科隆仓库到本地
     git pull #更新本地仓库
     git add . #添加所有新文件到暂存区
     git commit -m "本次修改说明" #提交改动
-    回到github提交pull request
-    等待审核合并
+    #回到github提交pull request
+    #等待审核合并
 ```
  - 受信任的合作开发者（已成为Collaborators，可以直接push）：
 
@@ -41,8 +41,8 @@
     git commit -m "本次修改说明" #提交改动
     git push --set-upstream origin testing #设置推送到远端的分支为testing
     git push upstream testing #向远端testing分支推送修改
-    回到github提交pull request
-    等待审核合并
+    #回到github提交pull request
+    #等待审核合并
 ```
 ## 4. 合作开发规范
 - 代码文件用英文命名，采用小写加下划线方式，如library_system.py。
