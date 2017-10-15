@@ -27,6 +27,7 @@
     git pull #更新本地仓库
     git add . #添加所有新文件到暂存区
     git commit -m "本次修改说明" #提交改动
+    git push #向远端推送修改
     #回到github提交pull request
     #等待审核合并
 ```
