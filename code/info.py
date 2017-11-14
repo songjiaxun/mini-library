@@ -4,24 +4,25 @@ import json
 
 class Info(object):
     """Info read/write class"""    
-    def __init__(self,lib="../data/图书馆信息.xlsx",reader="../data/读者信息.xlsx"):
+    def __init__(self,libFile="../data/图书馆信息.xlsx",readerFile="../data/读者信息.xlsx"):
         ###
         ##数据初始化
         ###
-        self.lib = lib
-        self.reader = reader
+        self.libFile = libFile
+        self.readerFile = readerFile
         self.data_book = {}
+        self.data_reader = {}
         ###从两个excel文档和一个json文档中载入初始数据###
         try:
-            lib_wk = load_workbook(lib)
-            self.books = lib_wk.worksheets[0]#读取书籍信息
-            self.books_lost = lib_wk.worksheets[1]#读取书籍遗失
+            libWorkbook = load_workbook(libFile)
+            self.books = libWorkbook.worksheets[0]#读取书籍信息
+            self.books_lost = libWorkbook.worksheets[1]#读取书籍遗失
         except Exception:
             input("请确认“图书馆信息.xlsx”文件保持关闭状态，并与置于data文件夹下！")                        
         try:
-            reader_wk = load_workbook(reader)
-            self.readers = reader_wk.worksheets[0]#读取读者信息
-            self.log_borrow = reader_wk.worksheets[1]#读取借阅记录
+            readerWorkbook = load_workbook(readerFile)
+            self.readers = readerWorkbook.worksheets[0]#读取读者信息
+            self.log_borrow = readerWorkbook.worksheets[1]#读取借阅记录
         except Exception:
             input("请确认“读者信息.xlsx”文件保持关闭状态，并与置于data文件夹下！")
         ###从 meta_data.json 中读取配置信息###
@@ -68,6 +69,39 @@ class Info(object):
                 "信息来源": books.cell(row=book,column=12).value
             }                         
             self.data_book[isbn] = info_book
-
+    def reader_Read(self):
+        ###从excel文件读取读者信息###
+        readers = self.readers 
+        rows = readers.max_row
+        for reader in range(2, rows+1):
+            if readers.cell(row=reader,column=11).value == None:
+                count = 0
+            else:
+                count = readers.cell(row=reader,column=11).value
+            if readers.cell(row=reader,column=12).value == None:
+                borrowed_times = 0
+            else:
+                borrowed_times = readers.cell(row=reader,column=12).value
+            if not str(readers.cell(row=reader, column=1).value).isdigit():
+                reader_id= 0
+            else:
+                reader_id = str(readers.cell(row=reader,column=1).value)
+            info_reader = {
+                "row": reader,
+                "借书号": reader_id,
+                "姓名": readers.cell(row=reader,column=2).value,
+                "性别": readers.cell(row=reader,column=3).value,
+                "单位": readers.cell(row=reader,column=4).value,
+                "所借书目": readers.cell(row=reader,column=5).value,
+                "借书日期": readers.cell(row=reader,column=6).value,
+                "应还日期": readers.cell(row=reader,column=7).value,
+                "还书日期": readers.cell(row=reader,column=8).value,
+                "借书记录": readers.cell(row=reader,column=9).value,
+                "借书权限": readers.cell(row=reader,column=10).value,
+                "过期次数": count,
+                "借阅次数": borrowed_times
+            }                         
+            self.data_reader[reader_id] = info_reader  
+        print(self.data_reader)                
 
 
