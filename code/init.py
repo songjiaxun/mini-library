@@ -4,7 +4,7 @@ from info import Info
 
 
 
-def initiallize():
+def initialize():
     ###初始化###
     with open('../data/meta_data.json','r') as file:
         json_data = json.load(file)
@@ -18,7 +18,7 @@ def initiallize():
             json.dump(json_data,file2)
     return (json_data['institution'], json_data['password'],json_data['admin'])
 
-instit, pw, pw_admin = initiallize()
+instit, pw, pw_admin = initialize()
 info = Info()
 info.book_Read()
 info.reader_Read()
