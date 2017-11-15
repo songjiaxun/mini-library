@@ -101,7 +101,6 @@ class Info(object):
                 "过期次数": count,
                 "借阅次数": borrowed_times
             }                         
-            self.data_reader[reader_id] = info_reader  
-        print(self.data_reader)                
+            self.data_reader[reader_id] = info_reader                
 
 
