@@ -18,13 +18,13 @@ class Info(object):
             self.books = libWorkbook.worksheets[0]#读取书籍信息
             self.books_lost = libWorkbook.worksheets[1]#读取书籍遗失
         except Exception:
-            input("请确认“图书馆信息.xlsx”文件保持关闭状态，并与置于data文件夹下！")                        
+            input("请确认“图书馆信息.xlsx”文件保持关闭状态，并置于 data 文件夹下！")                        
         try:
             readerWorkbook = load_workbook(readerFile)
             self.readers = readerWorkbook.worksheets[0]#读取读者信息
             self.log_borrow = readerWorkbook.worksheets[1]#读取借阅记录
         except Exception:
-            input("请确认“读者信息.xlsx”文件保持关闭状态，并与置于data文件夹下！")
+            input("请确认“读者信息.xlsx”文件保持关闭状态，并置于 data 文件夹下！")
         ###从 meta_data.json 中读取配置信息###
         try:
             with open('../data/meta_data.json',"r") as file:
@@ -32,7 +32,7 @@ class Info(object):
                 self.supposed_return_days_students = meta_data["student_days"]
                 self.supposed_return_days_teachers = meta_data["teacher_days"]
         except Exception:
-            input("请确认“meta_data.json”文件保持关闭状态，并与该软件置于同一目录下！") 
+            input("请确认“meta_data.json”文件保持关闭状态，并置于 data 文件夹下！") 
     def book_Read(self):
         ###从excel文件读取图书信息###
         books = self.books 

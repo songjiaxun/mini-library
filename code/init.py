@@ -6,8 +6,11 @@ from info import Info
 
 def initialize():
     ###初始化###
-    with open('../data/meta_data.json','r') as file:
-        json_data = json.load(file)
+    try:
+        with open('../data/meta_data.json','r') as file:
+            json_data = json.load(file)
+    except Exception:
+        input("请确认“meta_data.json”文件保持关闭状态，并置于 data 文件夹下！") 
     if json_data['status'] == '0':
         print('【软件初始化】，请按提示输入！')
         json_data['status'] ='1'
@@ -18,7 +21,16 @@ def initialize():
             json.dump(json_data,file2)
     return (json_data['institution'], json_data['password'],json_data['admin'])
 
+
+
+
+def main():
+    ###主界面###
+    instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
+    backup()##建立数据备份模块
+
 instit, pw, pw_admin = initialize()
 info = Info()
 info.book_Read()
 info.reader_Read()
+main()
