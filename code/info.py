@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import json
+import copy
 
 class Info(object):
     """Info read/write class"""    
@@ -101,6 +102,17 @@ class Info(object):
                 "过期次数": count,
                 "借阅次数": borrowed_times
             }                         
-            self.data_reader[reader_id] = info_reader                
+            self.data_reader[reader_id] = info_reader
+    def reader_Write2Json(self,file):
+        data_reader_bak = copy.deepcopy(self.data_reader)
+        for key in data_reader_bak:
+            for col in ['借书日期','应还日期','还书日期']:
+                if data_reader_bak[key][col] != None:
+                    data_reader_bak[key][col] = data_reader_bak[key][col].strftime('%Y-%m-%d %H:%M:%S')
+        with open(file + '_bak.json','w') as f:
+            json.dump(data_reader_bak,f)
+    def book_Write2Json(self,file):
+        with open(file + '_bak.json','w') as f:
+            json.dump(self.data_book,f)
 
 

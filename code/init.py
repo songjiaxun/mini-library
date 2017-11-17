@@ -2,7 +2,9 @@
 import json
 from info import Info
 
-
+info = Info()
+border1 = '=================================================================================='
+border2 = '----------------------------------------------------------------------------------'
 
 def initialize():
     ###初始化###
@@ -27,10 +29,14 @@ def initialize():
 def main():
     ###主界面###
     instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
-    backup()##建立数据备份模块
+    info.reader_Write2Json(info.readerFile)
+    info.book_Write2Json(info.libFile)
+    print(border1)
+    print("欢迎进入" + instit + "图书馆管理系统！")
+    print(border1)
+    password = input('请输入密码！推出请按【0】\n密码：')
 
 instit, pw, pw_admin = initialize()
-info = Info()
 info.book_Read()
 info.reader_Read()
 main()
