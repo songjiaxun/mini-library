@@ -18,7 +18,17 @@ def initialize():
         json_data['status'] ='1'
         json_data['institution'] = input('【学校/机构名称】：')
         json_data['password'] = input('【登录密码】：')
+        
+        while (len(json_data['password']) < 6):
+            print('弱密码，请使用至少6位数字作为密码')
+            json_data['password'] = input('【登录密码】：')
+        
         json_data['admin'] = input('【管理员密码】：')
+        
+        while (len(json_data['admin']) < 6):
+            print('弱密码，请使用至少6位数字作为密码')
+            json_data['admin'] = input('【管理员密码】：')
+        
         with open('../data/meta_data.json','w') as file2:
             json.dump(json_data,file2)
     return (json_data['institution'], json_data['password'],json_data['admin'])
