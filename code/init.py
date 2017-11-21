@@ -34,8 +34,6 @@ def initialize():
     return (json_data['institution'], json_data['password'],json_data['admin'])
 
 
-
-
 def main():
     ###主界面###
     instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
@@ -44,7 +42,16 @@ def main():
     print(border1)
     print("欢迎进入" + instit + "图书馆管理系统！")
     print(border1)
-    password = input('请输入密码！推出请按【0】\n密码：')
+    password = input('请输入密码！退出请按【0】\n密码：')
+    while password != pw:
+        if password == "0":
+            return
+        else:
+            password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+    print(border1)
+    print("【密码正确，欢迎使用！】")
+    print(border2)
+    info.summary()
 
 instit, pw, pw_admin = initialize()
 info.book_Read()

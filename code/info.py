@@ -114,5 +114,7 @@ class Info(object):
     def book_Write2Json(self,file):
         with open(file + '_bak.json','w') as f:
             json.dump(self.data_book,f)
+    def summary(self):
+        print('summary')
 
 
