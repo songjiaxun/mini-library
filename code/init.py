@@ -52,6 +52,7 @@ def main():
     print("【密码正确，欢迎使用！】")
     print(border2)
     info.summary()
+    print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookAmount) +'】册，注册读者【'+ str(info.readerAmount) +'】人。')
 
 instit, pw, pw_admin = initialize()
 info.book_Read()

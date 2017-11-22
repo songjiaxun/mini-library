@@ -13,6 +13,9 @@ class Info(object):
         self.readerFile = readerFile
         self.data_book = {}
         self.data_reader = {}
+        self.bookAmount= 0 #书籍总量（本）
+        self.bookKinds= 0 #书籍种类总量（种）
+        self.readerAmount =0 #读者数量 （人）
         ###从两个excel文档和一个json文档中载入初始数据###
         try:
             libWorkbook = load_workbook(libFile)
@@ -115,6 +118,16 @@ class Info(object):
         with open(file + '_bak.json','w') as f:
             json.dump(self.data_book,f)
     def summary(self):
-        print('summary')
+        ###统计馆藏本书、注册读者数等信息###
+        for book in self.data_book:
+            if self.data_book[book]['馆藏本数'] == None:
+                pass
+            else:
+                self.bookAmount += self.data_book[book]['馆藏本数']
+                self.bookKinds += 1
+        for reader in self.data_reader:
+            self.readerAmount += 1
+
+
 
 
