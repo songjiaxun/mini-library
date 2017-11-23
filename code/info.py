@@ -38,7 +38,7 @@ class Info(object):
         except Exception:
             input("请确认“meta_data.json”文件保持关闭状态，并置于 data 文件夹下！") 
     def book_Read(self):
-        ###从excel文件读取图书信息###
+        ###从excel文件读取图书信息,即原版的read_bookinfo()###
         books = self.books 
         rows = books.max_row
         for book in range(2, rows+1):
@@ -74,7 +74,7 @@ class Info(object):
             }                         
             self.data_book[isbn] = info_book
     def reader_Read(self):
-        ###从excel文件读取读者信息###
+        ###从excel文件读取读者信息,即原版的reader_readerinfo()###
         readers = self.readers 
         rows = readers.max_row
         for reader in range(2, rows+1):
@@ -107,6 +107,7 @@ class Info(object):
             }                         
             self.data_reader[reader_id] = info_reader
     def reader_Write2Json(self,file):
+        #备份读者信息至 json 文件，即原版 excel_to_json() 的拆分
         data_reader_bak = copy.deepcopy(self.data_reader)
         for key in data_reader_bak:
             for col in ['借书日期','应还日期','还书日期']:
@@ -115,6 +116,7 @@ class Info(object):
         with open(file + '_bak.json','w') as f:
             json.dump(data_reader_bak,f)
     def book_Write2Json(self,file):
+        #备份书籍信息至 json 文件，即原版 excel_to_json() 的拆分
         with open(file + '_bak.json','w') as f:
             json.dump(self.data_book,f)
     def summary(self):
