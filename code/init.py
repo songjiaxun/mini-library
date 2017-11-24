@@ -2,9 +2,11 @@
 import json
 from info import Info
 from book import Book
+from validation import Validation
 
 info = Info()
 book = Book()
+validation = Validation()
 border1 = '=================================================================================='
 border2 = '----------------------------------------------------------------------------------'
 
@@ -35,13 +37,6 @@ def initialize():
             json.dump(json_data,file2)
     return (json_data['institution'], json_data['password'],json_data['admin'])
 
-def input_validate(instruction):
-    ##验证信息输入是否为空，若为空，重复提示内容。即原版的 input_request()###
-    content = input(instruction)
-    while content == '':
-        content = input(instruction)
-    return content
-
 def main():
     ###主界面###
     instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
@@ -62,12 +57,13 @@ def main():
     info.summary()
     print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookAmount) +'】册，注册读者【'+ str(info.readerAmount) +'】人。')
     print('学生借书期限【'+ info.supposed_return_days_students +'】天，教师借书期限【'+ info.supposed_return_days_teachers + '】天。')
-    content = input_validate(border1+instruction)
+    content = validation.inputs(border1+instruction)
     while content != '0':
         if content == '1':
             #备份数据
             info.reader_Write2Json(info.readerFile)
             info.book_Write2Json(info.libFile)
+            print(border1)
             book.borrow()
 
 
