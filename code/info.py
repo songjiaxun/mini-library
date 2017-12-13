@@ -2,6 +2,9 @@
 from openpyxl import load_workbook
 import json
 import copy
+from validation import Validation
+
+validation = Validation()
 
 class Info(object):
     """Info read/write class"""    
@@ -119,6 +122,11 @@ class Info(object):
         #备份书籍信息至 json 文件，即原版 excel_to_json() 的拆分
         with open(file + '_bak.json','w') as f:
             json.dump(self.data_book,f)
+    def borrow(self):
+        #书籍借阅操作#
+        readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n读者借书号：')
+        while readerId != '0':
+            print('borrow func init()')
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
         for book in self.data_book:

@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 import json
 from info import Info
-from book import Book
 from validation import Validation
 
 info = Info()
-book = Book()
 validation = Validation()
 border1 = '=================================================================================='
 border2 = '----------------------------------------------------------------------------------'
@@ -63,8 +61,8 @@ def main():
             #备份数据
             info.reader_Write2Json(info.readerFile)
             info.book_Write2Json(info.libFile)
-            print(border1)
-            book.borrow()
+            info.borrow()
+
 
 
 instit, pw, pw_admin = initialize()

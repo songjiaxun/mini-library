@@ -13,6 +13,3 @@ class Book(object):
         while reader_id !='0':
             try:
                 req_reader = info.data_reader[reader_id]
-
-
-
