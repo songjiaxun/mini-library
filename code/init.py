@@ -1,12 +1,11 @@
 # -*- coding: utf-8 -*-
 import json
+import globalvar
 from info import Info
 from validation import Validation
 
 info = Info()
 validation = Validation()
-border1 = '=================================================================================='
-border2 = '----------------------------------------------------------------------------------'
 
 def initialize():
     ###初始化###
@@ -40,22 +39,22 @@ def main():
     instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
     info.reader_Write2Json(info.readerFile)
     info.book_Write2Json(info.libFile)
-    print(border1)
+    print(globalvar.border1)
     print("欢迎进入" + instit + "图书馆管理系统！")
-    print(border1)
+    print(globalvar.border1)
     password = input('请输入密码！退出请按【0】\n密码：')
     while password != pw:
         if password == "0":
             return
         else:
             password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
-    print(border1)
+    print(globalvar.border1)
     print("【密码正确，欢迎使用！】")
-    print(border2)
+    print(globalvar.border2)
     info.summary()
     print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookAmount) +'】册，注册读者【'+ str(info.readerAmount) +'】人。')
     print('学生借书期限【'+ info.supposed_return_days_students +'】天，教师借书期限【'+ info.supposed_return_days_teachers + '】天。')
-    content = validation.inputs(border1+instruction)
+    content = validation.inputs(globalvar.border1+instruction)
     while content != '0':
         if content == '1':
             #备份数据

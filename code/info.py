@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import json
+import globalvar
 import copy
 from validation import Validation
 
@@ -125,8 +126,15 @@ class Info(object):
     def borrow(self):
         #书籍借阅操作#
         readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n读者借书号：')
+        print(globalvar.border2)
         while readerId != '0':
-            print('borrow func init()')
+            try:
+                req_readerId = self.data_reader[readerId]
+                self.print_reader(req_readerId, False)
+            except Exception:
+                print('\n【读者借书号不存在，请重新输入！】')
+    def print_reader(self):
+        print('输出借阅者信息')
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
         for book in self.data_book:
