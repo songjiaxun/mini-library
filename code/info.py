@@ -146,6 +146,25 @@ class Info(object):
             print('所借书目：','暂无所借书目')
         else:
             print('所借书目：', req_reader['所借书目'])
+        if req_reader['借书日期'] == None:
+            print('借书日期：')
+            print('应还日期：')
+        else:
+            print('借书日期：', req_reader['借书日期'].strftime('%Y-%m-%d %H:%M:%S'))
+            print('应还日期：', req_reader['应还日期'].strftime('%Y-%m-%d %H:%M:%S'))
+        
+        if req_reader['还书日期'] == None:
+            print('还书日期')
+        else:
+            print('还书日期：', req_reader['还书日期'].strftime('%Y-%m-%d %H:%M:%S'))
+
+        if req_reader['借阅次数'] == 0:
+            print('借书记录：','无借书记录')
+        else:
+            borrow_log = req_reader['借书记录'].split(',')
+            print('todo')
+            print('借书记录：', '曾借阅图书' + str(req_reader['借阅次数']) + '本：')
+
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
         for book in self.data_book:
