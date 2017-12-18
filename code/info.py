@@ -129,12 +129,23 @@ class Info(object):
         print(globalvar.border2)
         while readerId != '0':
             try:
-                req_readerId = self.data_reader[readerId]
-                self.print_reader(req_readerId, False)
+                req_reader = self.data_reader[readerId]
+                self.print_reader(req_reader, False)
             except Exception:
                 print('\n【读者借书号不存在，请重新输入！】')
-    def print_reader(self):
-        print('输出借阅者信息')
+                print(globalvar.border2)
+                readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n 读者借书号：')
+    def print_reader(self, req_reader, all_or_not):
+        ##打印读者信息##
+        ##req_reader:检索到的读者信息集##
+        ##                             ##
+        print('姓名：', req_reader['姓名'])
+        print('性别：', req_reader['性别'])
+        print('单位：', req_reader['单位'])
+        if req_reader['所借书目'] == None:
+            print('所借书目：','暂无所借书目')
+        else:
+            print('所借书目：', req_reader['所借书目'])
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
         for book in self.data_book:
