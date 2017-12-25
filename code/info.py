@@ -130,15 +130,15 @@ class Info(object):
         while readerId != '0':
             try:
                 req_reader = self.data_reader[readerId]
-                self.print_reader(req_reader, False)
+                self.print_reader(req_reader,False)
             except Exception:
                 print('\n【读者借书号不存在，请重新输入！】')
                 print(globalvar.border2)
                 readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n 读者借书号：')
-    def print_reader(self, req_reader, all_or_not):
+    def print_reader(self, req_reader, entries=False):
         ##打印读者信息##
         ##req_reader:检索到的读者信息集##
-        ##                             ##
+        ##entries:是否显示全部借阅记录##
         print('姓名：', req_reader['姓名'])
         print('性别：', req_reader['性别'])
         print('单位：', req_reader['单位'])
@@ -162,8 +162,26 @@ class Info(object):
             print('借书记录：','无借书记录')
         else:
             borrow_log = req_reader['借书记录'].split(',')
-            print('todo')
             print('借书记录：', '曾借阅图书' + str(req_reader['借阅次数']) + '本：')
+            if entries == False:
+                entry_list = []##存储借书记录
+                for log in borrow_log:
+                    if log.find('(') != -1:
+                        entry_list.append('         '+log[log.find('(')+1:-1] + ' 借书 '+ log[:log.find('(')]['书籍名称'])
+                        
+                if len(entry_list) >= 5:
+                    print('【早期记录已省略，仅显示最近5条记录，若要查询完整记录请进入管理员模式。】')
+                    for entry in entry_list[-5:]:
+                        print(entry)
+                else:
+                    for entry in entry_list:
+                        print(entry)
+
+
+
+
+            
+
 
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
