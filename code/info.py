@@ -131,6 +131,27 @@ class Info(object):
             try:
                 req_reader = self.data_reader[readerId]
                 self.print_reader(req_reader,False)
+                if req_reader['借书权限'] != '开通':
+                    print(globalvar.border2 + '\n【该读者暂无借书权限！】')
+                    input(globalvar.border2 + '\n点击回车键确认退出借书。')
+                    return 
+                if req_reader['所借书目'] != None:
+                    print(globalvar.border2 + '\n【请将已借数目归还后再借新书！】')
+                    input(globalvar.border2 + '\n点击回车键确认退出借书。')
+                    return 
+                print(globalvar.border2)
+                isbn = validation.inputs('请输入欲借书目【ISBN】，退出借书请按【0】\nISBN：')
+                if isbn == '0':
+                    return 
+                while isbn != '0':
+                    try:
+                        print('111')
+                    except Exception:
+                        print('\n【ISBN不存在，请重新输入！】')
+                        print(globalvar.border2)
+                        isbn = validation.inputs('请输入欲借书目【ISBN】，退出借书请按【0】\nISBN：')
+                        if isbn === '0':
+                            return
             except Exception:
                 print('\n【读者借书号不存在，请重新输入！】')
                 print(globalvar.border2)
@@ -161,21 +182,24 @@ class Info(object):
         if req_reader['借阅次数'] == 0:
             print('借书记录：','无借书记录')
         else:
-            borrow_log = req_reader['借书记录'].split(',')
-            print('借书记录：', '曾借阅图书' + str(req_reader['借阅次数']) + '本：')
-            if entries == False:
-                entry_list = []##存储借书记录
-                for log in borrow_log:
-                    if log.find('(') != -1:
-                        entry_list.append('         '+log[log.find('(')+1:-1] + ' 借书 '+ log[:log.find('(')]['书籍名称'])
+            print('借书记录：','延后开发')
+            # borrow_log = req_reader['借书记录'].split(',')
+            # print('借书记录：', '曾借阅图书' + str(req_reader['借阅次数']) + '本：')
+            # if entries == False:
+            #     entry_list = []##存储借书记录
+            #     for log in borrow_log:
+            #         if log.find('(') != -1:
+            #             entry_list.append('         '+log[log.find('(')+1:-1] + ' 借书 '+ log[:log.find('(')]['书籍名称'])
                         
-                if len(entry_list) >= 5:
-                    print('【早期记录已省略，仅显示最近5条记录，若要查询完整记录请进入管理员模式。】')
-                    for entry in entry_list[-5:]:
-                        print(entry)
-                else:
-                    for entry in entry_list:
-                        print(entry)
+            #     if len(entry_list) >= 5:
+            #         print('【早期记录已省略，仅显示最近5条记录，若要查询完整记录请进入管理员模式。】')
+            #         for entry in entry_list[-5:]:
+            #             print(entry)
+            #     else:
+            #         for entry in entry_list:
+            #             print(entry)
+        print('借书权限：',req_reader['借书权限'])
+        print('过期次数:', req_reader['过期次数'])
 
 
 
