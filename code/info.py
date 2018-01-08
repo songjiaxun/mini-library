@@ -126,6 +126,7 @@ class Info(object):
     def borrow(self):
         #书籍借阅操作#
         readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n读者借书号：')
+        print(globalvar.border3)
         print(globalvar.border2)
         while readerId != '0':
             try:
@@ -145,12 +146,13 @@ class Info(object):
                     return 
                 while isbn != '0':
                     try:
-                        print('111')
+                        req_book = self.data_book[isbn]
+                        print_book(req_book, False)
                     except Exception:
                         print('\n【ISBN不存在，请重新输入！】')
                         print(globalvar.border2)
                         isbn = validation.inputs('请输入欲借书目【ISBN】，退出借书请按【0】\nISBN：')
-                        if isbn === '0':
+                        if isbn == '0':
                             return
             except Exception:
                 print('\n【读者借书号不存在，请重新输入！】')
@@ -201,12 +203,11 @@ class Info(object):
         print('借书权限：',req_reader['借书权限'])
         print('过期次数:', req_reader['过期次数'])
 
-
-
-
-            
-
-
+    def print_book(self, req_book, all_or_not):
+        ###打印书籍信息###
+        bookCollection = req_book['馆藏本数']
+        bookLog = req_book['借阅记录']
+        print('打印书籍信息')
     def summary(self):
         ###统计馆藏本书、注册读者数等信息###
         for book in self.data_book:

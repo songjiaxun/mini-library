@@ -8,7 +8,7 @@ info = Info()
 validation = Validation()
 
 def initialize():
-    ###初始化###
+    ###初始化：读取 meta_data.json 文件中的配置信息###
     try:
         with open('../data/meta_data.json','r') as file:
             json_data = json.load(file)
@@ -37,24 +37,33 @@ def initialize():
 def main():
     ###主界面###
     instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
+    # 获取当前数据库中已有的读者信息及书籍信息
+    info.book_Read()
+    info.reader_Read()    
+    # 数据备份
     info.reader_Write2Json(info.readerFile)
     info.book_Write2Json(info.libFile)
+    
+    print(globalvar.border3)
     print(globalvar.border1)
-    print("欢迎进入" + instit + "图书馆管理系统！")
+    print("欢迎进入【" + institution + "】图书馆管理系统！")
+    
     print(globalvar.border1)
     password = input('请输入密码！退出请按【0】\n密码：')
+    print(globalvar.border3)    
     while password != pw:
         if password == "0":
             return
         else:
+            print()
             password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
-    print(globalvar.border1)
-    print("【密码正确，欢迎使用！】")
     print(globalvar.border2)
     info.summary()
     print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookAmount) +'】册，注册读者【'+ str(info.readerAmount) +'】人。')
     print('学生借书期限【'+ info.supposed_return_days_students +'】天，教师借书期限【'+ info.supposed_return_days_teachers + '】天。')
     content = validation.inputs(globalvar.border1+instruction)
+    # 获取用户输入的菜单命令
+    # 1为借书
     while content != '0':
         if content == '1':
             #备份数据
@@ -64,7 +73,5 @@ def main():
 
 
 
-instit, pw, pw_admin = initialize()
-info.book_Read()
-info.reader_Read()
+institution, pw, pw_admin = initialize()
 main()
