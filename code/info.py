@@ -126,9 +126,9 @@ class Info(object):
     def borrow(self):
         #书籍借阅操作#
         readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n读者借书号：')
-        print(globalvar.border3)
-        print(globalvar.border2)
         while readerId != '0':
+            print(globalvar.border3)
+            print(globalvar.border2)            
             try:
                 req_reader = self.data_reader[readerId]
                 self.print_reader(req_reader,False)
@@ -147,7 +147,7 @@ class Info(object):
                 while isbn != '0':
                     try:
                         req_book = self.data_book[isbn]
-                        print_book(req_book, False)
+                        self.print_book(req_book, False)
                     except Exception:
                         print('\n【ISBN不存在，请重新输入！】')
                         print(globalvar.border2)

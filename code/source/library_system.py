@@ -203,7 +203,7 @@ def borrow_book():
     ###借书模块###
     print (header1)
     readerid = input_request("请输入读者【借书号】，退出借书请按【0】\n读者借书号:")
-    while readerid != "0":
+    while readerid != "0":        
         try:
             request_reader = data_reader[readerid]
             print_request_reader(request_reader, False)
@@ -275,7 +275,6 @@ def borrow_book():
             print ("\n【读者借书号不存在，请重新输入！】")
             print (header2)
             readerid = input_request("请输入读者【借书号】，退出借书请按【0】\n读者借书号:")
-
 def return_book():
     ###还书模块###
     print (header1)
@@ -837,7 +836,7 @@ def main():
     while content != "0":
         if content == "1":
             excel_to_json()
-            borrow_book()
+            borrow_book()           
             content = input_request(header1+instruction)
         elif content == "2":
             excel_to_json()
