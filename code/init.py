@@ -8,32 +8,41 @@ info = Info()
 validation = Validation()
 
 def initialize():
-    ###初始化：读取 meta_data.json 文件中的配置信息###
+
+    #初始化：读取 meta_data.json 文件中的配置信息#
     try:
         with open('../data/meta_data.json','r') as file:
             json_data = json.load(file)
     except Exception:
         input("请确认“meta_data.json”文件保持关闭状态，并置于 data 文件夹下！") 
+
+    #初始化:设置机构信息及登录密码#
     if json_data['status'] == '0':
-        print('【软件初始化】，请按提示输入！')
+        print('软件初始化：请按提示输入相关信息！')
         json_data['status'] ='1'
         json_data['institution'] = input('【学校/机构名称】：')
-        json_data['password'] = input('【登录密码】：')
         
-        # TODO：↓这个判断应该可以单独封装成一个函数
+        ##获取登录密码##
+        json_data['password'] = input('【登录密码】：')
+        ##登录密码验证##
         while (len(json_data['password']) < 6):
-            print('弱密码，请使用至少6位数字作为密码')
+            print('弱密码：请使用至少6位数字作为密码')
             json_data['password'] = input('【登录密码】：')
         
-        json_data['admin'] = input('【管理员密码】：')
-        
-        while (len(json_data['admin']) < 6):
-            print('弱密码，请使用至少6位数字作为密码')
-            json_data['admin'] = input('【管理员密码】：')
-        
+        ##获取管理员密码##
+        json_data['adminpass'] = input('【管理员密码】：')        
+        ##管理员密码验证##
+        while (len(json_data['adminpass']) < 6 or (json_data['password'] == json_data['adminpass'])):
+            
+            if (len(json_data['adminpass']) < 6):
+                print('弱密码：请使用至少6位数字作为密码')
+            elif (json_data['password'] == json_data['adminpass']):
+                print('弱密码：请勿使用【登录密码】作为【管理员密码】')
+            ###验证失败，重新获取管理员密码
+            json_data['adminpass'] = input('【管理员密码】：')
+
         with open('../data/meta_data.json','w') as file2:
             json.dump(json_data,file2)
-    return (json_data['institution'], json_data['password'],json_data['admin'])
 
 def main():
     ###主界面###
@@ -62,7 +71,7 @@ def main():
     print('学生借书期限【'+ info.supposed_return_days_students +'】天，教师借书期限【'+ info.supposed_return_days_teachers + '】天。')
     content = validation.inputs(globalvar.border1 + instruction)
     # 获取用户输入的菜单命令
-    # 1为借书
+    # 1为借书，2为还书
     while content != '0':
         if content == '1':
             #备份数据
@@ -70,6 +79,9 @@ def main():
             info.book_Write2Json(info.libFile)
             info.borrow()
             content = validation.inputs(globalvar.border1 + instruction)
+        elif content == '2':
+            info.reader_Write2Json(info.readerFile)
+            info.book_Write2Json(info.libFile)            
 
 
 
