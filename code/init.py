@@ -44,46 +44,53 @@ def initialize():
         with open('../data/meta_data.json','w') as file2:
             json.dump(json_data,file2)
 
+    return (json_data['institution'], json_data['password'],json_data['adminpass']) 
+
 def main():
-    ###主界面###
-    instruction = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
+    #主界面#
+    ##主菜单##
+    menu = '\n请按指示进行相关操作：\n借书请按【1】\n还书请按【2】\n查询书目信息请按【3】\n查询读者信息请按【4】\n管理各类信息请按【5】\n帮助请按【6】\n退出请按【0】\n'
+    
     # 获取当前数据库中已有的读者信息及书籍信息
-    info.book_Read()
-    info.reader_Read()    
+    # info.book_Read()
+    # info.reader_Read()    
     # 数据备份,考虑是否可以删除，与其他操作中自带的备份功能似乎有重叠
     # info.reader_Write2Json(info.readerFile)
     # info.book_Write2Json(info.libFile)
-    
-    print(globalvar.border3)
+
     print(globalvar.border1)
-    print("欢迎进入【" + institution + "】图书馆管理系统！")
-    
+    print(f'欢迎进入【{institution}】图书馆管理系统！')
+
     print(globalvar.border1)
     password = input('请输入密码！退出请按【0】\n密码：')    
+    ##登录密码验证##
     while password != pw:
-        if password == "0":
+        if password == '0':
             return
         else:
-            password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+            password = input("\n【密码错误！】\n请重新输入密码！退出请按0\n密码:")
+    
     print(globalvar.border2)
     info.summary()
-    print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookAmount) +'】册，注册读者【'+ str(info.readerAmount) +'】人。')
-    print('学生借书期限【'+ info.supposed_return_days_students +'】天，教师借书期限【'+ info.supposed_return_days_teachers + '】天。')
-    content = validation.inputs(globalvar.border1 + instruction)
-    # 获取用户输入的菜单命令
-    # 1为借书，2为还书
-    while content != '0':
-        if content == '1':
-            #备份数据
-            info.reader_Write2Json(info.readerFile)
-            info.book_Write2Json(info.libFile)
-            info.borrow()
-            content = validation.inputs(globalvar.border1 + instruction)
-        elif content == '2':
-            info.reader_Write2Json(info.readerFile)
-            info.book_Write2Json(info.libFile)            
+    print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookTotal) +'】册，注册读者【'+ str(info.readerTotal) +'】人。')
+    print('学生借书期限【'+ info.supposedReturnDays_students +'】天，教师借书期限【'+ info.supposedReturnDays_teachers + '】天。')
+
+    content = validation.inputs(globalvar.border1 + menu)
+
+    # # 获取用户输入的菜单命令
+    # # 1为借书，2为还书
+    # while content != '0':
+    #     if content == '1':
+    #         #备份数据
+    #         info.reader_Write2Json(info.readerFile)
+    #         info.book_Write2Json(info.libFile)
+    #         info.borrow()
+    #         content = validation.inputs(globalvar.border1 + instruction)
+    #     elif content == '2':
+    #         info.reader_Write2Json(info.readerFile)
+    #         info.book_Write2Json(info.libFile)            
 
 
 
-institution, pw, pw_admin = initialize()
+institution, pw, adminpw = initialize()
 main()
