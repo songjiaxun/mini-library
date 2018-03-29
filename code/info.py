@@ -129,20 +129,20 @@ class Info(object):
         #备份书籍信息至 json 文件，即原版 excel_to_json() 的拆分
         with open(file + '_bak.json','w') as f:
             json.dump(self.data_book,f)
-    def borrow(self):
+    def bookBorrow(self):
         #书籍借阅操作#
         readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n读者借书号：')
+
         while readerId != '0':
-            print(globalvar.border3)
-            print(globalvar.border2)            
+            print(globalvar.border1)            
             try:
-                req_reader = self.data_reader[readerId]
-                self.print_reader(req_reader,False)
-                if req_reader['借书权限'] != '开通':
+                req = self.dataReader[readerId]
+                self.readerPrint(req,False)
+                if req['借书权限'] != '开通':
                     print(globalvar.border2 + '\n【该读者暂无借书权限！】')
                     input(globalvar.border2 + '\n点击回车键确认退出借书。')
                     return 
-                if req_reader['所借书目'] != None:
+                if req['所借书目'] != None:
                     print(globalvar.border2 + '\n【请将已借数目归还后再借新书！】')
                     input(globalvar.border2 + '\n点击回车键确认退出借书。')
                     return 
@@ -152,8 +152,8 @@ class Info(object):
                     return 
                 while isbn != '0':
                     try:
-                        req_book = self.data_book[isbn]
-                        self.print_book(req_book, False)
+                        req_book = self.dataBook[isbn]
+                        self.bookPrint(req_book, False)
                     except Exception:
                         print('\n【ISBN不存在，请重新输入！】')
                         print(globalvar.border2)
@@ -164,33 +164,33 @@ class Info(object):
                 print('\n【读者借书号不存在，请重新输入！】')
                 print(globalvar.border2)
                 readerId = validation.inputs('请输入读者【借书号】，退出请按【0】\n 读者借书号：')
-    def print_reader(self, req_reader, entries=False):
+    def readerPrint(self, req, entries=False):
         ##打印读者信息##
-        ##req_reader:检索到的读者信息集##
+        ##req:检索到的读者信息集##
         ##entries:是否显示全部借阅记录##
-        print('姓名：', req_reader['姓名'])
-        print('性别：', req_reader['性别'])
-        print('单位：', req_reader['单位'])
-        if req_reader['所借书目'] == None:
+        print('姓名：', req['姓名'])
+        print('性别：', req['性别'])
+        print('单位：', req['单位'])
+        if req['所借书目'] == None:
             print('所借书目：','暂无所借书目')
         else:
-            print('所借书目：', req_reader['所借书目'])
-        if req_reader['借书日期'] == None:
+            print('所借书目：', req['所借书目'])
+        if req['借书日期'] == None:
             print('借书日期：')
             print('应还日期：')
         else:
-            print('借书日期：', req_reader['借书日期'].strftime('%Y-%m-%d %H:%M:%S'))
-            print('应还日期：', req_reader['应还日期'].strftime('%Y-%m-%d %H:%M:%S'))
+            print('借书日期：', req['借书日期'].strftime('%Y-%m-%d %H:%M:%S'))
+            print('应还日期：', req['应还日期'].strftime('%Y-%m-%d %H:%M:%S'))
         
-        if req_reader['还书日期'] == None:
-            print('还书日期')
+        if req['还书日期'] == None:
+            print('还书日期：')
         else:
-            print('还书日期：', req_reader['还书日期'].strftime('%Y-%m-%d %H:%M:%S'))
+            print('还书日期：', req['还书日期'].strftime('%Y-%m-%d %H:%M:%S'))
 
-        if req_reader['借阅次数'] == 0:
+        if req['借阅次数'] == 0:
             print('借书记录：','无借书记录')
         else:
-            print('借书记录：','延后开发')
+            print('借书记录：','开发中...')
             # borrow_log = req_reader['借书记录'].split(',')
             # print('借书记录：', '曾借阅图书' + str(req_reader['借阅次数']) + '本：')
             # if entries == False:
@@ -206,14 +206,29 @@ class Info(object):
             #     else:
             #         for entry in entry_list:
             #             print(entry)
-        print('借书权限：',req_reader['借书权限'])
-        print('过期次数:', req_reader['过期次数'])
+        print('借书权限：',req['借书权限'])
+        print('过期次数:', req['过期次数'])
 
-    def print_book(self, req_book, all_or_not):
+    def bookPrint(self, req_book, all_or_not):
         ###打印书籍信息###
+
         bookCollection = req_book['馆藏本数']
         bookLog = req_book['借阅记录']
-        print('打印书籍信息')
+
+        if bookLog == None:
+            pass
+        else:
+            print(len(bookLog))
+            # while bookLog.find('[') != -1:
+            #     status = bookLog[bookLog.find('[')+1:bookLog.find(']')]
+            #     print(status)
+            #     if status == '借书':
+            #         bookCollection -= 1
+            #     elif status == '还书' or status == '丢失':
+            #         bookCollection += 1
+            #         print(222)
+        print(111)
+
     def summary(self):
         ##统计馆藏数量、注册读者数等信息##
 

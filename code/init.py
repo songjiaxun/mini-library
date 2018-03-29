@@ -58,10 +58,10 @@ def main():
     # info.reader_Write2Json(info.readerFile)
     # info.book_Write2Json(info.libFile)
 
-    print(globalvar.border1)
+    print(globalvar.border2)
     print(f'欢迎进入【{institution}】图书馆管理系统！')
 
-    print(globalvar.border1)
+    print(globalvar.border2)
     password = input('请输入密码！退出请按【0】\n密码：')    
     ##登录密码验证##
     while password != pw:
@@ -69,23 +69,20 @@ def main():
             return
         else:
             password = input("\n【密码错误！】\n请重新输入密码！退出请按0\n密码:")
-    
-    print(globalvar.border2)
+    ##信息汇总##
+    print(globalvar.border1)
     info.summary()
-    print('图书馆现存图书【'+ str(info.bookKinds) +'】种, 共计图书【'+ str(info.bookTotal) +'】册，注册读者【'+ str(info.readerTotal) +'】人。')
-    print('学生借书期限【'+ info.supposedReturnDays_students +'】天，教师借书期限【'+ info.supposedReturnDays_teachers + '】天。')
+    print(f'图书馆现存图书【{info.bookKinds}】种, 共计图书【{info.bookTotal}】册，注册读者【{info.readerTotal}】人。')
+    print(f'学生借书期限【{info.supposedReturnDays_students}】天，教师借书期限【{info.supposedReturnDays_teachers}】天。')
 
-    content = validation.inputs(globalvar.border1 + menu)
+    content = validation.inputs(globalvar.border2 + menu)
 
-    # # 获取用户输入的菜单命令
-    # # 1为借书，2为还书
-    # while content != '0':
-    #     if content == '1':
-    #         #备份数据
-    #         info.reader_Write2Json(info.readerFile)
-    #         info.book_Write2Json(info.libFile)
-    #         info.borrow()
-    #         content = validation.inputs(globalvar.border1 + instruction)
+    ## 获取用户输入的菜单命令
+    ## 1为借书，2为还书
+    while content != '0':
+        if content == '1':
+            info.bookBorrow()
+            # content = validation.inputs(globalvar.border1 + instruction)
     #     elif content == '2':
     #         info.reader_Write2Json(info.readerFile)
     #         info.book_Write2Json(info.libFile)            
