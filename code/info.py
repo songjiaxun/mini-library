@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 from openpyxl import load_workbook
 import json
-import globalvar
 import copy
+from format import Format
 from validation import Validation
 
 validation = Validation()
+format = Format()
 
 class Info(object):
     """Info read/write class"""    

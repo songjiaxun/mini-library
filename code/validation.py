@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+from format import Format
+
+format = Format()
 
 class Validation(object):
     """输入验证模块"""
@@ -9,6 +12,7 @@ class Validation(object):
         
         content = input(str)
         while content == '':
+            format.breakLine('-',50)
             content = input(str)
         return content
 
