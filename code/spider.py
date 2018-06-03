@@ -56,6 +56,8 @@ def getinfo_douban(isbn, data):
         title = root.find('./{http://www.w3.org/2005/Atom}title').text
         data["title"] = "《{}》".format(title)
         data["summary"] = root.find('./{http://www.w3.org/2005/Atom}summary').text
+        if data["summary"]:
+            data["summary"] = re.sub(r"[\\n\s\n\t\r]+", "", data["summary"])
     except:
         pass
     
@@ -139,6 +141,8 @@ def getinfo_guotu1(isbn, data, timeout=10):
                 data["subject"] = tr.xpath('.//td[2]/a/text()')[0].replace("\xa0", "")
             elif name == "内容提要":
                 data["summary"] = tr.xpath('.//td[2]/text()')[0].strip()
+                if data["summary"]:
+                    data["summary"] = re.sub(r"[\\n\s\n\t\r]+", "", data["summary"])
             elif name == "载体形态项":
                 data["page_number"] = tr.xpath('.//td[2]/text()')[0].strip().replace("\xa0", "")
             elif name == "出版项":
@@ -229,6 +233,8 @@ def getinfo_guotu2(isbn, data, timeout=10):
                 data["subject"] = tr.xpath('.//td[2]/a/text()')[0].replace("\xa0", "")
             elif name == "内容提要":
                 data["summary"] = tr.xpath('.//td[2]/text()')[0].strip()
+                if data["summary"]:
+                    data["summary"] = re.sub(r"[\\n\s\n\t\r]+", "", data["summary"])
             elif name == "载体形态项":
                 data["page_number"] = tr.xpath('.//td[2]/text()')[0].strip().replace("\xa0", "")
             elif name == "出版项":
