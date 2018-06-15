@@ -1,5 +1,6 @@
+#coding:utf-8
+
 from datetime import datetime
-import json
 import numpy as np
 import pandas as pd
 from pprint import pprint
@@ -251,7 +252,7 @@ def get_connection(db_path='library.db'):
 
 def update_sql():
     global readers_df, books_df, history_df
-    conn = sql.connect('library.db')
+    conn = get_connection()
     readers_df.to_sql("Readers", conn, if_exists="replace", index=False)
     books_df.to_sql("Books", conn, if_exists="replace", index=False)
     history_df.to_sql("History", conn, if_exists="replace", index=False)
@@ -282,7 +283,7 @@ def update_excel_history():
     history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
 def sql_to_excel():
-    conn = sql.connect('library.db')
+    conn = get_connection()
     readers_sql = "SELECT * FROM Readers"
     books_sql = "SELECT * FROM Books"
     history_sql = "SELECT * FROM History"
@@ -307,22 +308,32 @@ def sql_to_excel():
     writer_history = pd.ExcelWriter("借阅记录_恢复.xlsx")
     history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
-
-
 def initiallize():
     ###初始化###
-    with open('meta_data.json', "r") as f:
-        data = json.load(f)
+    conn = get_connection()
+    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
-    if data["status"] == "0":
-        print ("【软件初始化】，请按提示输入相应内容！")
+    data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
+    print (data)
+
+    if "status" not in data or data["status"].item() == "0": # remove later: "status" not in data
         data["status"] = "1"
+        print ("【软件初始化】，请按提示输入相应内容！")
         data["institution"] = input("【学校/机构名称】：")
         data["password"] = input("【登陆密码】：")
         data["administrator"] = input("【管理员密码】：")
-        with open('meta_data.json', "w") as f:
-            json.dump(data, f)
+        data["student_days"] = 15
+        data["teacher_days"] = 30
+        # # use default values first?
+        # data["student_days"] = input("【学生】借书期限（天）：")
+        # data["teacher_days"] = input("【教师】借书期限（天）：")
+        data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
+
+# purely a sanity check; will be removed later
+    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append')
+    print ("is anything changed?\n", data, "\n")
     return data
+
 
 def summary():
     ###统计馆藏本书、注册读者数等信息###
@@ -338,6 +349,9 @@ def input_request(instruction):
     while user_input == "":
         user_input = input(instruction)
     return user_input
+
+def check_isbn(isbn):
+    return 
 
 def book_info_entry_single(isbn):
     global books_df
@@ -619,8 +633,7 @@ def admin():
             if confirm == "1":
                 meta_data["student_days"] = student_days # TODO 
                 meta_data["teacher_days"] = teacher_days
-                with open('meta_data.json', "w") as f:
-                    json.dump(meta_data, f)
+                meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print ("【读者借书期限设置成功！】")
         
         elif choice == "6":
@@ -632,8 +645,7 @@ def admin():
             if confirm == "1":
                 print (border2)
                 meta_data["status"] = "0"
-                with open('meta_data.json', "w") as f:
-                    json.dump(meta_data, f)
+                meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print ("【密码及登录信息重置成功!】")
                 return True
         
@@ -678,11 +690,11 @@ def admin():
 def main(meta_data):
     global password_admin, supposed_return_days_students, supposed_return_days_teachers, border1, border2, readers_dic, books_dic
     
-    institution = meta_data["institution"]
-    password_main = meta_data["password"]
-    password_admin = meta_data["administrator"]
-    supposed_return_days_students = meta_data["student_days"]
-    supposed_return_days_teachers = meta_data["teacher_days"]
+    institution = meta_data["institution"].item()
+    password_main = meta_data["password"].item()
+    password_admin = meta_data["administrator"].item()
+    supposed_return_days_students = meta_data["student_days"].item()
+    supposed_return_days_teachers = meta_data["teacher_days"].item()
 
     border1 = "=" * 100
     border2 = "-" * 100
@@ -771,7 +783,7 @@ if __name__ == '__main__':
     try:
         meta_data = initiallize()
     except:
-        print ("请确认【meta_data.json】文件保持关闭状态，并与该软件置于同一目录下！")
+        print ("Bugs here. Contact the collaborator") # delete this later
     try:
         readers_df, books_df = load_data_libaray()
     except:
