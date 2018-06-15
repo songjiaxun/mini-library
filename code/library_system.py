@@ -1,5 +1,6 @@
+#coding:utf-8
+
 from datetime import datetime
-import json
 import numpy as np
 import pandas as pd
 from pprint import pprint
@@ -251,7 +252,7 @@ def get_connection(db_path='library.db'):
 
 def update_sql():
     global readers_df, books_df, history_df
-    conn = sql.connect('library.db')
+    conn = get_connection()
     readers_df.to_sql("Readers", conn, if_exists="replace", index=False)
     books_df.to_sql("Books", conn, if_exists="replace", index=False)
     history_df.to_sql("History", conn, if_exists="replace", index=False)
@@ -282,7 +283,7 @@ def update_excel_history():
     history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
 def sql_to_excel():
-    conn = sql.connect('library.db')
+    conn = get_connection()
     readers_sql = "SELECT * FROM Readers"
     books_sql = "SELECT * FROM Books"
     history_sql = "SELECT * FROM History"
@@ -307,22 +308,36 @@ def sql_to_excel():
     writer_history = pd.ExcelWriter("借阅记录_恢复.xlsx")
     history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
-
-
 def initiallize():
     ###初始化###
-    with open('meta_data.json', "r") as f:
-        data = json.load(f)
+    conn = get_connection()
+    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
-    if data["status"] == "0":
-        print ("【软件初始化】，请按提示输入相应内容！")
+    data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
+    # print (data)
+
+    # sanity check; will be removed later
+    # remove later: "status" not in data
+    # when there's "status" but no item???
+    if "status" not in data:
+        data["status"] = ["1"] # I don't understand!
+    elif data["status"].item() is None:
+        print ("data['status'].item() is None")
+
+    if data["status"].item() == "0":
         data["status"] = "1"
+        print ("【软件初始化】，请按提示输入相应内容！")
         data["institution"] = input("【学校/机构名称】：")
         data["password"] = input("【登陆密码】：")
         data["administrator"] = input("【管理员密码】：")
-        with open('meta_data.json', "w") as f:
-            json.dump(data, f)
+        data["student_days"] = 15
+        data["teacher_days"] = 30
+        # # use default values first?
+        # data["student_days"] = input("【学生】借书期限（天）：")
+        # data["teacher_days"] = input("【教师】借书期限（天）：")
+        data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
     return data
+
 
 def summary():
     ###统计馆藏本书、注册读者数等信息###
@@ -339,6 +354,60 @@ def input_request(instruction):
         user_input = input(instruction)
     return user_input
 
+
+def __check10(isbn):
+    match = re.search(r'^(\d{9})(\d|X)$', isbn)
+    if not match:
+        print ("【ISBN-10格式错误：{}应为10位纯数字或'X'结尾，请检查输入设备。】".format(isbn))
+        return False
+    digits = match.group(1)
+    check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
+    result = sum((i + 1) * int(digit) for i, digit in enumerate(digits))
+    if (result % 11) != check_digit:
+        return True
+    # print (result % 11)
+    print ("【ISBN-10校验错误：{}，请检查输入设备。】".format(isbn))
+    return False
+
+def __check13(isbn):
+    match = re.search(r'^(\d{12})(\d)$', isbn)
+    if not match:
+        print ("【ISBN-13格式错误：{}应为13位纯数字，请检查输入设备。】".format(isbn))
+        return False
+    digits = match.group(1)
+    check_digit = int(match.group(2))
+    result = sum((i%2*2 + 1) * int(digit) for i, digit in enumerate(digits))
+    if (result % 10) == check_digit:
+        return True
+    # print (result % 10)
+    print ("【ISBN-13校验错误：{}，请检查输入设备。】".format(isbn))
+    return False
+
+# count = 0
+# print(len(data))
+# for isbn in data:
+#     if check13(str(isbn)):
+#         print(str(isbn) + " good!")
+#         count = count+1
+# print (count, "good in total")
+
+
+# 检查isbn格式
+def check_isbn(isbn):
+
+    # # stripping has to be put somewhere else; not working right now!
+    # if '-' in isbn or ' ' in isbn:
+    #     print ("【ISBN码格式警告：{} 含有空格或连字符，系统已自动去除。】".format(isbn))
+    # isbn = isbn.replace("-", "").replace(" ", "").upper()
+
+    if len(isbn) == 10:
+        return __check10(isbn)
+    if len(isbn) == 13:
+        return __check13(isbn)
+    print ("【ISBN码长度错误：{}应为10位或13位，请检查输入设备。】".format(isbn))
+    return False
+
+
 def book_info_entry_single(isbn):
     global books_df
     # 图书数据
@@ -348,9 +417,13 @@ def book_info_entry_single(isbn):
 
     # 检查isbn，本数和位置信息，如果不正确返回空值，不录入数据库
     # 检查isbn格式
-    if len(isbn)<5 or isbn[:1] == "91" or (not isbn.isdigit()):
-        print ("【{}为错误的ISBN码，请检查输入设备。】".format(isbn))
+    if (len(isbn) != 10 or not re.search(r'^(\d{9})(\d|X)$', isbn)) and (len(isbn) != 13 or not re.search(r'^(\d{12})(\d)$', isbn)):
+        print ("【{}为错误的ISBN码，应为[9位纯数字+'X'结尾]或[10位纯数字]或[13位纯数字]，请检查输入设备。】".format(isbn))
         return
+    # if len(isbn)<5 or isbn[:1] == "91" or (not isbn.isdigit()):
+        # print ("【{}为错误的ISBN码，请检查输入设备。】".format(isbn))
+        # return
+
     data["isbn"] = isbn
     # 输入书籍本数
     total_number = input("本数：")
@@ -619,8 +692,7 @@ def admin():
             if confirm == "1":
                 meta_data["student_days"] = student_days # TODO 
                 meta_data["teacher_days"] = teacher_days
-                with open('meta_data.json', "w") as f:
-                    json.dump(meta_data, f)
+                meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print ("【读者借书期限设置成功！】")
         
         elif choice == "6":
@@ -632,8 +704,7 @@ def admin():
             if confirm == "1":
                 print (border2)
                 meta_data["status"] = "0"
-                with open('meta_data.json', "w") as f:
-                    json.dump(meta_data, f)
+                meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print ("【密码及登录信息重置成功!】")
                 return True
         
@@ -678,11 +749,11 @@ def admin():
 def main(meta_data):
     global password_admin, supposed_return_days_students, supposed_return_days_teachers, border1, border2, readers_dic, books_dic
     
-    institution = meta_data["institution"]
-    password_main = meta_data["password"]
-    password_admin = meta_data["administrator"]
-    supposed_return_days_students = meta_data["student_days"]
-    supposed_return_days_teachers = meta_data["teacher_days"]
+    institution = meta_data["institution"].item()
+    password_main = meta_data["password"].item()
+    password_admin = meta_data["administrator"].item()
+    supposed_return_days_students = meta_data["student_days"].item()
+    supposed_return_days_teachers = meta_data["teacher_days"].item()
 
     border1 = "=" * 100
     border2 = "-" * 100
@@ -771,7 +842,7 @@ if __name__ == '__main__':
     try:
         meta_data = initiallize()
     except:
-        print ("请确认【meta_data.json】文件保持关闭状态，并与该软件置于同一目录下！")
+        print ("Bugs here. Contact the collaborator") # delete this later
     try:
         readers_df, books_df = load_data_libaray()
     except:
