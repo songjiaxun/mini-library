@@ -314,9 +314,17 @@ def initiallize():
     pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
     data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
-    print (data)
+    # print (data)
 
-    if "status" not in data or data["status"].item() == "0": # remove later: "status" not in data
+    # sanity check; will be removed later
+    # remove later: "status" not in data
+    # when there's "status" but no item???
+    if "status" not in data:
+        data["status"] = ["1"] # I don't understand!
+    elif data["status"].item() is None:
+        print ("data['status'].item() is None")
+
+    if data["status"].item() == "0":
         data["status"] = "1"
         print ("【软件初始化】，请按提示输入相应内容！")
         data["institution"] = input("【学校/机构名称】：")
@@ -328,10 +336,6 @@ def initiallize():
         # data["student_days"] = input("【学生】借书期限（天）：")
         # data["teacher_days"] = input("【教师】借书期限（天）：")
         data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
-
-# purely a sanity check; will be removed later
-    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append')
-    print ("is anything changed?\n", data, "\n")
     return data
 
 
@@ -350,8 +354,59 @@ def input_request(instruction):
         user_input = input(instruction)
     return user_input
 
+
+def __check10(isbn):
+    match = re.search(r'^(\d{9})(\d|X)$', isbn)
+    if not match:
+        print ("【ISBN-10格式错误：{}应为10位纯数字或'X'结尾，请检查输入设备。】".format(isbn))
+        return False
+    digits = match.group(1)
+    check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
+    result = sum((i + 1) * int(digit) for i, digit in enumerate(digits))
+    if (result % 11) != check_digit:
+        return True
+    # print (result % 11)
+    print ("【ISBN-10校验错误：{}，请检查输入设备。】".format(isbn))
+    return False
+
+def __check13(isbn):
+    match = re.search(r'^(\d{12})(\d)$', isbn)
+    if not match:
+        print ("【ISBN-13格式错误：{}应为13位纯数字，请检查输入设备。】".format(isbn))
+        return False
+    digits = match.group(1)
+    check_digit = int(match.group(2))
+    result = sum((i%2*2 + 1) * int(digit) for i, digit in enumerate(digits))
+    if (result % 10) == check_digit:
+        return True
+    # print (result % 10)
+    print ("【ISBN-13校验错误：{}，请检查输入设备。】".format(isbn))
+    return False
+
+# count = 0
+# print(len(data))
+# for isbn in data:
+#     if check13(str(isbn)):
+#         print(str(isbn) + " good!")
+#         count = count+1
+# print (count, "good in total")
+
+
+# 检查isbn格式
 def check_isbn(isbn):
-    return 
+
+    # # stripping has to be put somewhere else; not working right now!
+    # if '-' in isbn or ' ' in isbn:
+    #     print ("【ISBN码格式警告：{} 含有空格或连字符，系统已自动去除。】".format(isbn))
+    # isbn = isbn.replace("-", "").replace(" ", "").upper()
+
+    if len(isbn) == 10:
+        return __check10(isbn)
+    if len(isbn) == 13:
+        return __check13(isbn)
+    print ("【ISBN码长度错误：{}应为10位或13位，请检查输入设备。】".format(isbn))
+    return False
+
 
 def book_info_entry_single(isbn):
     global books_df
@@ -362,9 +417,13 @@ def book_info_entry_single(isbn):
 
     # 检查isbn，本数和位置信息，如果不正确返回空值，不录入数据库
     # 检查isbn格式
-    if len(isbn)<5 or isbn[:1] == "91" or (not isbn.isdigit()):
-        print ("【{}为错误的ISBN码，请检查输入设备。】".format(isbn))
+    if (len(isbn) != 10 or not re.search(r'^(\d{9})(\d|X)$', isbn)) and (len(isbn) != 13 or not re.search(r'^(\d{12})(\d)$', isbn)):
+        print ("【{}为错误的ISBN码，应为[9位纯数字+'X'结尾]或[10位纯数字]或[13位纯数字]，请检查输入设备。】".format(isbn))
         return
+    # if len(isbn)<5 or isbn[:1] == "91" or (not isbn.isdigit()):
+        # print ("【{}为错误的ISBN码，请检查输入设备。】".format(isbn))
+        # return
+
     data["isbn"] = isbn
     # 输入书籍本数
     total_number = input("本数：")
