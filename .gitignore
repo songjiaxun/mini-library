@@ -1,20 +1,3 @@
-Skip to content
- 
-Search or jump to…
-
-Pull requests
-Issues
-Marketplace
-Explore
- @jiaxunsongucb Sign out
-4
-2 3 jiaxunsongucb/mini-library
- Code  Issues 7  Pull requests 0  Projects 0  Wiki  Insights  Settings
-mini-library/.gitignore
-18bcab4  on Aug 26, 2017
-@jiaxunsongucb jiaxunsongucb Initial commit
-     
-102 lines (80 sloc)  1.13 KB
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
