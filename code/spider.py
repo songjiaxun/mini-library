@@ -18,7 +18,7 @@ def connect_url(url, parser=etree.HTML, i=3, timeout=3):
     if not req:
         return False, "bad network"
 
-def getinfo_douban(isbn, data):
+def getinfo_douban(isbn, data, timeout=10):
     """
     豆瓣API
     没有主题和索书号信息
@@ -28,7 +28,7 @@ def getinfo_douban(isbn, data):
     
     url = "http://api.douban.com/book/subject/isbn/" + isbn
     
-    status, msg = connect_url(url, parser=etree.XML)
+    status, msg = connect_url(url, parser=etree.XML, timeout=timeout)
     
     if status:
         root = msg

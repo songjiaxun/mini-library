@@ -272,6 +272,7 @@ def update_excel_library():
     writer_library = pd.ExcelWriter("图书馆信息.xlsx")
     readers_copy.to_excel(writer_library, sheet_name="读者", index=False)
     books_copy.to_excel(writer_library, sheet_name="书籍", index=False)
+    writer_library.save()
 
 def update_excel_history():
     global history_df
@@ -281,6 +282,7 @@ def update_excel_history():
 
     writer_history = pd.ExcelWriter("借阅记录.xlsx")
     history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
+    writer_history.save()
 
 def sql_to_excel():
     conn = get_connection()
@@ -464,7 +466,7 @@ def book_info_entry_single(isbn):
     spider_names = ["国图1", "国图2", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
-        status, book_info = spider(isbn, data)
+        status, book_info = spider(isbn, data, 2)
         if status:
             book_info["status"] = True
             book_info["source"] = name
@@ -635,7 +637,7 @@ def admin():
                                 "price", "subject", "total_number", "call_no", "summary", "location"]
                     book_info_tuple = (book_info[col] for col in book_schema)
                     
-                    global books_df
+                    # global books_df
                     # 如果ISBN已经存在，并且用户同意合并信息，则只更改已存在条目中书籍总数
                     if book_info["isbn"] in set(books_df["isbn"]):
                         books_df.loc[books_df[books_df["isbn"]==isbn].index, "total_number"] = book_info["total_number"]
@@ -648,7 +650,8 @@ def admin():
                             # 无论书籍信息是否获取成功，这一条信息都会被插入到excel中
                             print ("联网数据获得失败，请打开“图书馆信息.xlsx”文件手动添加书籍信息。")
                         record = pd.DataFrame([book_info_tuple], columns=book_schema)
-                        books_df = pd.concat([books_df, record], ignore_index=True)
+                        books_df = pd.concat([books_df, record], ignore_index=True, sort=False)
+                    
                     # 更新excel
                     update_excel_library()
                     
@@ -845,7 +848,8 @@ if __name__ == '__main__':
         print ("Bugs here. Contact the collaborator") # delete this later
     try:
         readers_df, books_df = load_data_libaray()
-    except:
+    except Exception as e:
+        print (e)
         print ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
     try:
         history_df = load_data_history()

@@ -1,3 +1,8 @@
+setuptools>=18.2
+xlrd
+openpyxl
+numpy
 pandas
 lxml
-numpy
+requests
+pyinstaller
