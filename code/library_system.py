@@ -1,4 +1,4 @@
-#coding:utf-8
+# coding : utf-8
 
 from datetime import datetime
 import numpy as np
@@ -466,7 +466,7 @@ def book_info_entry_single(isbn):
     spider_names = ["国图1", "国图2", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
-        status, book_info = spider(isbn, data, 2)
+        status, book_info = spider(isbn, data, 3)
         if status:
             book_info["status"] = True
             book_info["source"] = name
