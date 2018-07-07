@@ -7,6 +7,10 @@ from pprint import pprint
 from spider import *
 import sqlite3 as sql
 
+# 中文对齐
+pd.set_option('display.unicode.east_asian_width',True)
+pd.set_option('display.expand_frame_repr',False)
+
 ###############################
 # 读者和书籍类
 ###############################
