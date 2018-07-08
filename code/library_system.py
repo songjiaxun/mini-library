@@ -8,6 +8,7 @@ from spider import *
 import sqlite3 as sql
 
 import logging
+import sys
 import os
 import time
 import traceback
@@ -101,14 +102,14 @@ class Reader():
         return pd.DataFrame()
 
     def print_info(self, limit=None):
-        print (("借书号：{}\n"
-                "姓名：{}\n"
-                "性别：{}\n"
-                "单位：{}\n"
-                "借书权限：{}\n"
-                "借书额度：{}\n"
-                "未还本书：{}\n"
-                "过期本书：{}").format(self.reader_id, self.name, self.gender, self.unit, self.access, self.quota, self.unreturned_book_number, self.due_count))
+        print ((f"借书号：{self.reader_id}\n"
+                f"姓名：{self.name}\n"
+                f"性别：{self.gender}\n"
+                f"单位：{self.unit}\n"
+                f"借书权限：{self.access}\n"
+                f"借书额度：{self.quota}\n"
+                f"未还本书：{self.unreturned_book_number}\n"
+                f"过期本书：{self.due_count}"))
         record = self.reader_history.copy()
         if not limit:
             limit = len(record)
@@ -138,7 +139,8 @@ class Reader():
         else:
             return_day = int(supposed_return_days_students)
         record = (date_time, unit, reader_name, reader_id, action, isbn, title, location, 15)
-        record = pd.DataFrame([record], columns=["date_time", "unit", "reader_name", "reader_id", "action", "isbn", "title", "location", "return_day"])
+        record = pd.DataFrame([record], columns=["date_time", "unit", "reader_name", "reader_id", "action", 
+                                                 "isbn", "title", "location", "return_day"])
 
         global history_df
         history_df = pd.concat([record, history_df], ignore_index=True)
@@ -151,8 +153,13 @@ class Reader():
             print ("【读者超过借书额度！】")
             return False
         if self.due_count > 0:
+            print (border2)
             print ("【读者有过期书籍，请还书后再借！】")
-            print (self.due_record[["date_time", "action", "isbn", "title", "return_date"]]) # TODO: pretty print
+            temp = self.due_record.copy()
+            temp = temp[["date_time", "action", "isbn", "title", "return_date"]]
+            temp.columns = ["借书时间", "动作", "ISBN", "书籍", "应还书时间"]
+            print ("过期书籍信息如下：")
+            print (temp)
             return False
         if book.avaliable_number <= 0:
             print ("【馆藏本书不足！】")
@@ -234,13 +241,13 @@ class Book():
         return result
 
     def print_info(self, limit=None):
-        print (("ISBN：{}\n"
-                "标题：{}\n"
-                "作者：{}\n"
-                "出版社：{}\n"
-                "位置：【{}】\n"
-                "馆藏本书：{}\n"
-                "剩余本书：{}").format(self.isbn, self.title, self.author, self.publisher, self.location, self.total_number, self.avaliable_number))
+        print ((f"ISBN：{self.isbn}\n"
+                f"标题：{self.title}\n"
+                f"作者：{self.author}\n"
+                f"出版社：{self.publisher}\n"
+                f"位置：【{self.location}】\n"
+                f"馆藏本书：{self.total_number}\n"
+                f"剩余本书：{self.avaliable_number}"))
         record = self.book_history.copy()
         if not limit:
             limit = len(record)
@@ -254,7 +261,6 @@ class Book():
         else:
             print ("【本书暂无借阅记录。】")
 
-
 ###############################
 # 载入数据
 ###############################
@@ -262,24 +268,17 @@ def load_data_libaray():
     readers_schema = ["reader_id", "name", "gender", "unit", "access", "quota"]
     books_schema = ["isbn", "title", "author", "publisher", "publish_date", "page_number", 
                     "price", "subject", "total_number", "call_no", "summary", "location"]
-
-    readers = pd.read_excel("图书馆信息.xlsx", sheet_name=0)
-    books = pd.read_excel("图书馆信息.xlsx", sheet_name=1)
-
+    readers = pd.read_excel("图书馆信息.xlsx", sheet_name=0, dtype={"借书号":str, "借书额度":int})
+    books = pd.read_excel("图书馆信息.xlsx", sheet_name=1, dtype={"ISBN":str, "馆藏本数":int, "书籍位置":str})
     readers.columns = readers_schema
     books.columns = books_schema
-
-    readers["reader_id"] = readers["reader_id"].astype(str)
-    books["isbn"] = books["isbn"].astype(str)
-    books["total_number"] = books["total_number"].astype(int)
     return readers, books
 
 def load_data_history():
-    history_schema = ["date_time", "unit", "reader_name", "reader_id", "action", "isbn", "title", "location", "return_day"]
-    history_df = pd.read_excel("借阅记录.xlsx", sheet_name=0)
+    history_schema = ["date_time", "unit", "reader_name", "reader_id", 
+                      "action", "isbn", "title", "location", "return_day"]
+    history_df = pd.read_excel("借阅记录.xlsx", sheet_name=0, dtype={"ISBN":str, "借书号":str, "还书期限":int})
     history_df.columns = history_schema
-    history_df["reader_id"] = history_df["reader_id"].astype(str)
-    history_df["isbn"] = history_df["isbn"].astype(str)
     history_df["date_time"] = history_df["date_time"].apply(lambda datetime : pd.Timestamp(datetime))
     return history_df
 
@@ -374,6 +373,7 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
     if reader_option:
         print (border2)
         reader_id = input_request("输入读者借书号，按0退出\n")
+        logger.info(f"输入读者借书号 - {reader_id}")
         while not reader_to_obj(reader_id) and reader_id != "0":
             reader_id = input_request("读者借书号不存在。输入读者借书号，按0退出\n")
         if reader_id != "0":
@@ -385,6 +385,7 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
     if book_option:
         print (border2)
         isbn = input_request("输入isbn号，按0退出\n")
+        logger.info(f"输入isbn号 - {isbn}")
         while not book_to_obj(isbn) and isbn != "0":
             isbn = input_request("isbn不存在。输入isbn，按0退出\n")
         if isbn != "0":
@@ -507,6 +508,7 @@ def book_info_entry_single(isbn):
     spider_names = ["国图2", "国图1", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
+        logger.info(f"从{name}获取书籍信息 - {isbn}")
         status, book_info = spider(isbn, data, 5)
         if status:
             book_info["status"] = True
@@ -519,8 +521,7 @@ def book_info_entry_single(isbn):
     return book_info
 
 def book_info_entry_batch():
-    pass
-    # TODO
+    print ("若想批量录入图书请联系作者：jiaxun.song@outlook.com，谢谢！")
 
 ###############################
 # 通用功能
@@ -546,7 +547,7 @@ def initiallize():
     pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
     data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
-    # print (data)
+    logger.info(data)
 
     # sanity check; will be removed later
     # remove later: "status" not in data
@@ -573,92 +574,52 @@ def initiallize():
 ###############################
 # 管理员功能
 ###############################
-def reader_id_generater(): # TODO
+def reader_id_generater():
     ###自动生成借书号###
     global readers_df
-    # from old version
-    # grade = {
-    #         "一": "1",
-    #         "二": "2",
-    #         "三": "3",
-    #         "四": "4",
-    #         "五": "5",
-    #         "六": "6",
-    #         "七": "7",
-    #         "八": "8",
-    #         "九": "9"
-    #         }    
-    # class_num = {
-    #         "年级": "0",
-    #         "甲": "1",
-    #         "乙": "2",
-    #         "丙": "3",
-    #         "丁": "4",
-    #         "一": "1",
-    #         "二": "2",
-    #         "三": "3",
-    #         "四": "4",
-    #         "五": "5",
-    #         "六": "6",
-    #         "七": "7",
-    #         "八": "8",
-    #         "九": "9", 
-    #         "十": "10"            
-    #         }
-    # nrows = ws2.max_row
-    # classid_dic = {}
-    # for row in range(2,nrows+1):
-    #     if ws2.cell(row=row,column=4).value not in set(["教师", "老师"]):
-    #         reader_id = ""
-    #         classid = ws2.cell(row=row,column=4).value
-    #         if classid in classid_dic.keys():
-    #             classid_dic[classid] += 1
-    #         else:
-    #             classid_dic[classid] = 1
-    #         count = classid_dic[classid]
-    #         for g in grade:
-    #             if classid[0].find(g) != -1:
-    #                 reader_id += grade[g]
-    #                 break
-    #         for n in class_num:
-    #             if classid[1:].find(n) != -1:
-    #                 reader_id += class_num[n]
-    #                 break
-    #         if count < 10:
-    #             count_str = "0" + str(count)
-    #         else:
-    #             count_str = str(count)
-    #         reader_id += count_str
-    #         ws2.cell(row=row,column=1).value = int(reader_id)
-        
-    #     elif ws2.cell(row=row,column=4).value in set(["教师", "老师"]):
-    #         classid = ws2.cell(row=row,column=4).value
-    #         if classid in classid_dic.keys():
-    #             classid_dic[classid] += 1
-    #         else:
-    #             classid_dic[classid] = 1
-    #         count = classid_dic[classid]
-    #         ws2.cell(row=row,column=1).value = count
-    #     else:
-
-    # wr2.save(reader)
-    pass
-
-def reader_reset(): # TODO
-    ###重置读者信息###
-    # from old version
-    # nrows = ws2.max_row
-    # for row in range(2,nrows+1):
-    #     ws2.cell(row=row,column=5).value = None
-    #     ws2.cell(row=row,column=6).value = None
-    #     ws2.cell(row=row,column=7).value = None
-    #     ws2.cell(row=row,column=8).value = None
-    #     ws2.cell(row=row,column=9).value = None
-    #     ws2.cell(row=row,column=10).value = "开通"
-    #     ws2.cell(row=row,column=11).value = None
-    #     ws2.cell(row=row,column=12).value = None
-    # wr2.save(reader)
-    pass
+    grade = {
+            "一": "1",
+            "二": "2",
+            "三": "3",
+            "四": "4",
+            "五": "5",
+            "六": "6",
+            "七": "7",
+            "八": "8",
+            "九": "9"
+            }    
+    class_num = {
+            "年级": "0",
+            "甲": "1",
+            "乙": "2",
+            "丙": "3",
+            "丁": "4",
+            "一": "1",
+            "二": "2",
+            "三": "3",
+            "四": "4",
+            "五": "5",
+            "六": "6",
+            "七": "7",
+            "八": "8",
+            "九": "9", 
+            "十": "10"            
+            }
+    groups = readers_df.groupby("unit")
+    for unit, group in groups:
+        if unit in ["教师", "老师"]:
+            readers_df.iloc[group.index,0] = [f"{teacher_id:04d}" 
+                                                for teacher_id in range(1, group.index.shape[0]+1)]
+        else:
+            grade_id = grade[unit[0]]
+            class_id = "0"
+            for class_name in class_num:
+                if class_name in unit[1:]:
+                    class_id = class_num[class_name]
+                    break
+            readers_df.iloc[group.index,0] = [f"{grade_id}{class_id}{student_id:02d}" 
+                                                for student_id in range(1, group.index.shape[0]+1)]
+    update_excel_library()
 
 def info_summary():
     # 一般信息
@@ -670,19 +631,25 @@ def info_summary():
     global history_df
     record = history_df.copy()
     record.index = np.arange(1, len(record)+1)
-    # 今日结束记录
-    today = record.loc[:, ["date_time", "unit", "reader_name", "action", "title"]]
+    # 今日借书记录
+    today = record.loc[:, ["date_time", "reader_id", "unit", "reader_name", "action", "title"]]
     today = today[today["date_time"] >= pd.Timestamp(datetime.today().date())]
-    today.columns = ["时间", "单位", "读者", "动作", "书籍"]
+    today.columns = ["时间", "借书号", "单位", "读者", "动作", "书籍"]
 
     # 最受欢迎的20本图书
-    popular_book = record[record["action"]=="借书"].groupby(["isbn", "title", "location"])["reader_id"].count().sort_values(ascending=False).iloc[:20,]
+    popular_book = (record[record["action"]=="借书"].groupby(["isbn", "title", "location"])["reader_id"]
+                                                    .count()
+                                                    .sort_values(ascending=False)
+                                                    .iloc[:20,])
     popular_book = pd.DataFrame(popular_book).reset_index()
     popular_book.columns = ["ISBN", "标题", "位置", "借阅次数"]
     popular_book.index = np.arange(1, 21)
 
     # 最勤奋的20位读者
-    good_reader = record[record["action"]=="借书"].groupby(["reader_id", "reader_name", "unit"])["isbn"].count().sort_values(ascending=False).iloc[:20,]
+    good_reader = (record[record["action"]=="借书"].groupby(["reader_id", "reader_name", "unit"])["isbn"]
+                                                    .count()
+                                                    .sort_values(ascending=False)
+                                                    .iloc[:20,])
     good_reader = pd.DataFrame(good_reader).reset_index()
     good_reader.columns = ["借书号", "姓名", "单位", "借阅次数"]
     good_reader.index = np.arange(1, 21)
@@ -691,14 +658,18 @@ def info_summary():
     due_reader = record
     due_reader = due_reader.sort_values("date_time")
     index_list = []
-    groups = due_reader.groupby(["reader_id","isbn"])
+    groups = due_reader.groupby(["reader_id", "isbn"])
     for _, group in groups:
         queue = [] # TODO: replace with real queue
         for i in group.index:
             if group.loc[i, "action"] == "借书":
                 queue.append(i)
             else:
-                queue.pop(0)
+                try:
+                    queue.pop(0)
+                except:
+                    logger.error("借书记录错误！")
+                    logger.error(group.loc[i, ["reader_name", "reader_id", "action"]])
         index_list += queue
     due_reader = due_reader.loc[index_list]
 
@@ -706,8 +677,8 @@ def info_summary():
         due_reader["return_day_obj"] = due_reader["return_day"].apply(lambda day : pd.Timedelta(str(day) + " days"))
         due_reader["return_date"] = due_reader["date_time"] + due_reader["return_day_obj"]
         due_reader = due_reader[due_reader["return_date"] < datetime.now()]
-        due_reader = due_reader[["date_time", "unit", "reader_name", "action", "title", "isbn", "return_date"]]
-        due_reader.columns = ["时间", "单位", "读者", "动作", "书籍", "ISBN", "应还书时间"]
+        due_reader = due_reader[["date_time", "reader_id", "unit", "reader_name", "title", "isbn", "return_date"]]
+        due_reader.columns = ["借书时间", "借书号", "单位", "读者", "书籍", "ISBN", "应还书时间"]
     else:
         due_reader = pd.DataFrame()
     
@@ -739,22 +710,21 @@ def admin():
 
     password = getpass.getpass(prompt="请输入【管理员密码】！退出请按【0】\n密码:") 
     while password != "0" and password != password_admin:
-        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按【0】\n密码:")
     if password == "0":
         return
-    instruction = ("\n【管理员】请按指示进行相关操作："
+    instruction = ( "\n【管理员】请按指示进行相关操作："
                     "\n单本录入图书请按【1】"
                     "\n批量录入图书请按【2】"
                     "\n自动生成借书号请按【3】"
                     "\n修改读者权限请按【4】"
                     "\n设置还书期限请按【5】"
                     "\n重置密码及登录信息请按【6】"
-                    "\n重置读者信息请按【7】"
-                    "\n查看统计信息请按【8】"
-                    "\n查询书目完整信息请按【9】"
-                    "\n查询读者完整信息请按【10】"
-                    "\n恢复备份文件请按【11】"
-                    "\n退出请按【0】\n")
+                    "\n查看统计信息请按【7】"
+                    "\n查询书目完整信息请按【8】"
+                    "\n查询读者完整信息请按【9】"
+                    "\n恢复备份文件请按【10】"
+                    "\n退出请按【0】\n" )
     choice = input_request(border1 + instruction)
 
     while choice != "0":
@@ -799,59 +769,36 @@ def admin():
                 isbn = input_request("输入ISBN，按0退出\n")
 
         elif choice == "2":
+            # 逻辑比较难实现，暂时搁置
             logger.info("批量录入图书")
             print (border1)
             update_sql()
-            book_info_entry_batch() # TODO 逻辑比较难实现，暂时搁置
+            book_info_entry_batch()
 
         elif choice == "3":
             logger.info("自动生成借书号")
             print (border1)
             update_sql()
-            reader_id_generater() # TODO
+            reader_id_generater()
             print ("【读者借书号成功生成，请重新打开软件!】")
             return True
         
         elif choice == "4":
             logger.info("修改读者权限")
-            print (border1)
             update_sql()
             reader, _ = retrieve_reader_book(True, False)
-            if reader: # TODO
-                print ("revise")
-                # from old version
-                # readerid = input_request("请输入读者【借书号】，退出请按【0】\n读者借书号:")
-                # while readerid != "0":
-                #     try:
-                #         request_reader = data_reader[readerid]
-                #         print_request_reader(request_reader, False)
-                #         request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
-                #         while request != "0":
-                #             if request == "1":
-                #                 ws2.cell(row=request_reader["row"],column=10).value = "开通"
-                #                 wr2.save(reader)
-                #                 read_readerinfo()
-                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"借书权限开通成功！】")
-                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
-                #             elif request == "2":
-                #                 ws2.cell(row=request_reader["row"],column=10).value = "暂停"
-                #                 wr2.save(reader)
-                #                 read_readerinfo()
-                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"借书权限暂停成功！】")
-                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
-                #             elif request == "3":
-                #                 ws2.cell(row=request_reader["row"],column=11).value = None
-                #                 wr2.save(reader)
-                #                 read_readerinfo()
-                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"过期次数重置成功！】")
-                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
-                #             else:
-                #                 print ("\n【错误代码，请重新输！】")
-                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
-                #         return
-                #     except Exception:
-                #         print ("\n【读者借书号不存在，请重新输入！】\n"+header2)
-                #         readerid = input_request("请输入读者【借书号】，退出还按【0】\n读者借书号:")
+            if reader:
+                request = input_request("\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n退出请按【0】\n")
+                while request not in ["1", "2", "0"]:
+                    request = input_request("\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n退出请按【0】\n")
+                if request == "1":
+                    reader.reader_access_revise("开通")
+                    reader.print_info(5)
+                    input ("【读者权限修改成功！】")
+                elif request == "2":
+                    reader.reader_access_revise("暂停")
+                    reader.print_info(5)
+                    input ("【读者权限修改成功！】")
 
         elif choice == "5":
             logger.info("设置还书期限")
@@ -881,34 +828,21 @@ def admin():
                 return True
         
         elif choice == "7":
-            logger.info("重置读者信息")
-            print (border1)
-            confirm = "999"
-            while confirm != "1" and confirm != "0":
-                confirm = input_request("该操作将【重置读者信息】，但【不会】影响图书信息和历史借阅记录。\n确认请按【1】，取消请按【0】")
-            if confirm == "1":
-                print (border2)
-                update_sql()
-                reader_reset() # TODO
-                print ("【读者信息重置成功，请重新打开软件!】")
-                return True
-        
-        elif choice == "8":
             logger.info("查看统计信息")
             print (border1)
             info_summary()
 
-        elif choice == "9":
+        elif choice == "8":
             logger.info("查询书目完整信息")
             retrieve_reader_book(False, True, None)
             input("请按回车返回。")
 
-        elif choice == "10":
+        elif choice == "9":
             logger.info("查询读者完整信息")
             retrieve_reader_book(True, False, None)
             input("请按回车返回。")
 
-        elif choice == "11":
+        elif choice == "10":
             logger.info("恢复备份文件")
             print (border1)
             print ("正在恢复文件中，请稍后...")
@@ -925,7 +859,8 @@ def admin():
 # 主目录
 ###############################
 def main(meta_data):
-    global password_admin, supposed_return_days_students, supposed_return_days_teachers, border1, border2, readers_dic, books_dic
+    global password_admin, supposed_return_days_students, supposed_return_days_teachers
+    global border1, border2, readers_dic, books_dic
     
     institution = meta_data["institution"].item()
     password_main = meta_data["password"].item()
@@ -954,17 +889,17 @@ def main(meta_data):
     print (border2)
     
     book_number_unique, book_number, reader_number = summary()
-    print ("图书馆现存图书【{}】种，共计图书【{}】册，注册读者【{}】人。".format(book_number_unique, book_number, reader_number))
-    print ("学生借书期限【{}】天，教师借书期限【{}】天。".format(supposed_return_days_students, supposed_return_days_teachers))
+    print (f"图书馆现存图书【{book_number_unique}】种，共计图书【{book_number}】册，注册读者【{reader_number}】人。")
+    print (f"学生借书期限【{supposed_return_days_students}】天，教师借书期限【{supposed_return_days_teachers}】天。")
     
-    instruction = ("\n请按指示进行相关操作："
+    instruction = ( "\n请按指示进行相关操作："
                     "\n借书请按【1】"
                     "\n还书请按【2】"
                     "\n查询书目信息请按【3】"
                     "\n查询读者信息请按【4】"
                     "\n管理各类信息请按【5】"
                     "\n帮助请按【6】"
-                    "\n退出请按【0】\n")
+                    "\n退出请按【0】\n" )
     choice = input_request(border1 + instruction)
     while choice != "0":
         
@@ -1044,3 +979,4 @@ if __name__ == '__main__':
             main(meta_data)
         except:
             logger.error("\n" + "".join(traceback.format_exception(*sys.exc_info())))
+            input("软件运行出现错误，请联系作者：jiaxun.song@outlook.com，谢谢！")
