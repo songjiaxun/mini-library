@@ -1,11 +1,46 @@
-# coding : utf-8
+# -*- coding: utf-8 -*-
 
 from datetime import datetime
+import getpass # 输入密码
 import numpy as np
 import pandas as pd
-from pprint import pprint
 from spider import *
 import sqlite3 as sql
+
+import logging
+import os
+import time
+import traceback
+
+###############################
+# 系统设置
+###############################
+
+## 创建日志
+def _create_logger(logger_name):
+    
+    # create logger
+    logger = logging.getLogger(logger_name)
+    logger.setLevel(logging.INFO)
+
+    # create file handler
+    if not os.path.isdir("./logs"):
+        os.makedirs("./logs")
+    log_path = f"./logs/{logger_name}-{datetime.now():%Y-%m-%dT%H:%M:%S.%f}.log"
+    fh = logging.FileHandler(log_path, mode='w')
+    fh.setLevel(logging.INFO)
+    
+    # create formatter
+    fmt = "%(asctime)s %(levelname)s - %(message)s"
+    datefmt = "%Y-%m-%d %H:%M:%S"
+    formatter = logging.Formatter(fmt, datefmt)
+
+    # add handler and formatter to logger
+    fh.setFormatter(formatter)
+    logger.addHandler(fh)
+    return logger
+
+logger = _create_logger("mini-library")
 
 # 中文对齐
 pd.set_option('display.unicode.east_asian_width',True)
@@ -314,53 +349,55 @@ def sql_to_excel():
     writer_history = pd.ExcelWriter("借阅记录_恢复.xlsx")
     history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
-def initiallize():
-    ###初始化###
-    conn = get_connection()
-    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
+## 在内存中创建对象
+def reader_to_obj(reader_id, force=False):
+    global readers_df, readers_dic
+    if reader_id not in readers_df["reader_id"].values:
+        return None
+    elif reader_id not in readers_dic or force:
+        readers_dic[reader_id] = Reader(readers_df[readers_df["reader_id"]==reader_id].iloc[0])
+    return readers_dic[reader_id]
 
-    data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
-    # print (data)
+def book_to_obj(isbn, force=False):
+    global books_df, books_dic
+    if isbn not in books_df["isbn"].values:
+        return None
+    elif isbn not in books_dic or force:
+        books_dic[isbn] = Book(books_df[books_df["isbn"]==isbn].iloc[0])
+    return books_dic[isbn]
 
-    # sanity check; will be removed later
-    # remove later: "status" not in data
-    # when there's "status" but no item???
-    if "status" not in data:
-        data["status"] = ["1"] # I don't understand!
-    elif data["status"].item() is None:
-        print ("data['status'].item() is None")
+## 打印读者/书籍信息，创建对象，并返回对象
+def retrieve_reader_book(reader_option, book_option, limit=5):
+    reader = None
+    book = None
 
-    if data["status"].item() == "0":
-        data["status"] = "1"
-        print ("【软件初始化】，请按提示输入相应内容！")
-        data["institution"] = input("【学校/机构名称】：")
-        data["password"] = input("【登陆密码】：")
-        data["administrator"] = input("【管理员密码】：")
-        data["student_days"] = 15
-        data["teacher_days"] = 30
-        # # use default values first?
-        # data["student_days"] = input("【学生】借书期限（天）：")
-        # data["teacher_days"] = input("【教师】借书期限（天）：")
-        data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
-    return data
+    if reader_option:
+        print (border2)
+        reader_id = input_request("输入读者借书号，按0退出\n")
+        while not reader_to_obj(reader_id) and reader_id != "0":
+            reader_id = input_request("读者借书号不存在。输入读者借书号，按0退出\n")
+        if reader_id != "0":
+            reader = reader_to_obj(reader_id)
+            reader.print_info(limit)
+        else:
+            return reader, book
 
+    if book_option:
+        print (border2)
+        isbn = input_request("输入isbn号，按0退出\n")
+        while not book_to_obj(isbn) and isbn != "0":
+            isbn = input_request("isbn不存在。输入isbn，按0退出\n")
+        if isbn != "0":
+            book = book_to_obj(isbn)
+            book.print_info(limit)
+        else:
+            return reader, book
 
-def summary():
-    ###统计馆藏本书、注册读者数等信息###
-    global readers_df, books_df
-    book_number_unique = len(books_df)
-    book_number = books_df["total_number"].sum()
-    reader_number = len(readers_df)
-    return book_number_unique, book_number, reader_number
+    return reader, book
 
-def input_request(instruction):
-    ###信息输入###
-    user_input = input(instruction)
-    while user_input == "":
-        user_input = input(instruction)
-    return user_input
-
-
+###############################
+# 爬虫相关
+###############################
 def __check10(isbn):
     match = re.search(r'^(\d{9})(\d|X)$', isbn)
     if not match:
@@ -466,11 +503,11 @@ def book_info_entry_single(isbn):
             return
 
     # 定义爬虫
-    spider_functions = [getinfo_guotu1, getinfo_guotu2, getinfo_douban]
-    spider_names = ["国图1", "国图2", "豆瓣"]
+    spider_functions = [getinfo_guotu2, getinfo_guotu1, getinfo_douban]
+    spider_names = ["国图2", "国图1", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
-        status, book_info = spider(isbn, data, 3)
+        status, book_info = spider(isbn, data, 5)
         if status:
             book_info["status"] = True
             book_info["source"] = name
@@ -485,55 +522,146 @@ def book_info_entry_batch():
     pass
     # TODO
 
-def reader_id_generater():
+###############################
+# 通用功能
+###############################
+def input_request(instruction):
+    ###信息输入###
+    user_input = input(instruction)
+    while user_input == "":
+        user_input = input(instruction)
+    return user_input
+
+def summary():
+    ###统计馆藏本书、注册读者数等信息###
+    global readers_df, books_df
+    book_number_unique = len(books_df)
+    book_number = books_df["total_number"].sum()
+    reader_number = len(readers_df)
+    return book_number_unique, book_number, reader_number
+
+def initiallize():
+    ###初始化###
+    conn = get_connection()
+    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
+
+    data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
+    # print (data)
+
+    # sanity check; will be removed later
+    # remove later: "status" not in data
+    # when there's "status" but no item???
+    if "status" not in data:
+        data["status"] = ["1"] # I don't understand!
+    elif data["status"].item() is None:
+        print ("data['status'].item() is None")
+
+    if data["status"].item() == "0":
+        data["status"] = "1"
+        print ("【软件初始化】，请按提示输入相应内容！")
+        data["institution"] = input("【学校/机构名称】：")
+        data["password"] = input("【登陆密码】：")
+        data["administrator"] = input("【管理员密码】：")
+        data["student_days"] = 15
+        data["teacher_days"] = 30
+        # # use default values first?
+        # data["student_days"] = input("【学生】借书期限（天）：")
+        # data["teacher_days"] = input("【教师】借书期限（天）：")
+        data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
+    return data
+
+###############################
+# 管理员功能
+###############################
+def reader_id_generater(): # TODO
+    ###自动生成借书号###
+    global readers_df
+    # from old version
+    # grade = {
+    #         "一": "1",
+    #         "二": "2",
+    #         "三": "3",
+    #         "四": "4",
+    #         "五": "5",
+    #         "六": "6",
+    #         "七": "7",
+    #         "八": "8",
+    #         "九": "9"
+    #         }    
+    # class_num = {
+    #         "年级": "0",
+    #         "甲": "1",
+    #         "乙": "2",
+    #         "丙": "3",
+    #         "丁": "4",
+    #         "一": "1",
+    #         "二": "2",
+    #         "三": "3",
+    #         "四": "4",
+    #         "五": "5",
+    #         "六": "6",
+    #         "七": "7",
+    #         "八": "8",
+    #         "九": "9", 
+    #         "十": "10"            
+    #         }
+    # nrows = ws2.max_row
+    # classid_dic = {}
+    # for row in range(2,nrows+1):
+    #     if ws2.cell(row=row,column=4).value not in set(["教师", "老师"]):
+    #         reader_id = ""
+    #         classid = ws2.cell(row=row,column=4).value
+    #         if classid in classid_dic.keys():
+    #             classid_dic[classid] += 1
+    #         else:
+    #             classid_dic[classid] = 1
+    #         count = classid_dic[classid]
+    #         for g in grade:
+    #             if classid[0].find(g) != -1:
+    #                 reader_id += grade[g]
+    #                 break
+    #         for n in class_num:
+    #             if classid[1:].find(n) != -1:
+    #                 reader_id += class_num[n]
+    #                 break
+    #         if count < 10:
+    #             count_str = "0" + str(count)
+    #         else:
+    #             count_str = str(count)
+    #         reader_id += count_str
+    #         ws2.cell(row=row,column=1).value = int(reader_id)
+        
+    #     elif ws2.cell(row=row,column=4).value in set(["教师", "老师"]):
+    #         classid = ws2.cell(row=row,column=4).value
+    #         if classid in classid_dic.keys():
+    #             classid_dic[classid] += 1
+    #         else:
+    #             classid_dic[classid] = 1
+    #         count = classid_dic[classid]
+    #         ws2.cell(row=row,column=1).value = count
+    #     else:
+
+    # wr2.save(reader)
     pass
-    # TODO
-    
-def reader_to_obj(reader_id, force=False):
-    global readers_df, readers_dic
-    if reader_id not in readers_df["reader_id"].values:
-        return None
-    elif reader_id not in readers_dic or force:
-        readers_dic[reader_id] = Reader(readers_df[readers_df["reader_id"]==reader_id].iloc[0])
-    return readers_dic[reader_id]
 
-def book_to_obj(isbn, force=False):
-    global books_df, books_dic
-    if isbn not in books_df["isbn"].values:
-        return None
-    elif isbn not in books_dic or force:
-        books_dic[isbn] = Book(books_df[books_df["isbn"]==isbn].iloc[0])
-    return books_dic[isbn]
-
-def retrieve_reader_book(reader_option, book_option, limit=5):
-    reader = None
-    book = None
-
-    if reader_option:
-        print (border2)
-        reader_id = input_request("输入读者借书号，按0退出\n")
-        while not reader_to_obj(reader_id) and reader_id != "0":
-            reader_id = input_request("读者借书号不存在。输入读者借书号，按0退出\n")
-        if reader_id != "0":
-            reader = reader_to_obj(reader_id)
-            reader.print_info(limit)
-        else:
-            return reader, book
-
-    if book_option:
-        print (border2)
-        isbn = input_request("输入isbn号，按0退出\n")
-        while not book_to_obj(isbn) and isbn != "0":
-            isbn = input_request("isbn不存在。输入isbn，按0退出\n")
-        if isbn != "0":
-            book = book_to_obj(isbn)
-            book.print_info(limit)
-        else:
-            return reader, book
-
-    return reader, book
+def reader_reset(): # TODO
+    ###重置读者信息###
+    # from old version
+    # nrows = ws2.max_row
+    # for row in range(2,nrows+1):
+    #     ws2.cell(row=row,column=5).value = None
+    #     ws2.cell(row=row,column=6).value = None
+    #     ws2.cell(row=row,column=7).value = None
+    #     ws2.cell(row=row,column=8).value = None
+    #     ws2.cell(row=row,column=9).value = None
+    #     ws2.cell(row=row,column=10).value = "开通"
+    #     ws2.cell(row=row,column=11).value = None
+    #     ws2.cell(row=row,column=12).value = None
+    # wr2.save(reader)
+    pass
 
 def info_summary():
+    # 一般信息
     book_number_unique, book_number, reader_number = summary()
     print ("图书馆现存图书【{}】种，共计图书【{}】册，注册读者【{}】人。".format(book_number_unique, book_number, reader_number))
     print ("学生借书期限【{}】天，教师借书期限【{}】天。".format(supposed_return_days_students, supposed_return_days_teachers))
@@ -542,21 +670,24 @@ def info_summary():
     global history_df
     record = history_df.copy()
     record.index = np.arange(1, len(record)+1)
-
+    # 今日结束记录
     today = record.loc[:, ["date_time", "unit", "reader_name", "action", "title"]]
     today = today[today["date_time"] >= pd.Timestamp(datetime.today().date())]
     today.columns = ["时间", "单位", "读者", "动作", "书籍"]
 
+    # 最受欢迎的20本图书
     popular_book = record[record["action"]=="借书"].groupby(["isbn", "title", "location"])["reader_id"].count().sort_values(ascending=False).iloc[:20,]
     popular_book = pd.DataFrame(popular_book).reset_index()
     popular_book.columns = ["ISBN", "标题", "位置", "借阅次数"]
     popular_book.index = np.arange(1, 21)
 
+    # 最勤奋的20位读者
     good_reader = record[record["action"]=="借书"].groupby(["reader_id", "reader_name", "unit"])["isbn"].count().sort_values(ascending=False).iloc[:20,]
     good_reader = pd.DataFrame(good_reader).reset_index()
     good_reader.columns = ["借书号", "姓名", "单位", "借阅次数"]
     good_reader.index = np.arange(1, 21)
 
+    # 过期未还书的读者
     due_reader = record
     due_reader = due_reader.sort_values("date_time")
     index_list = []
@@ -598,14 +729,17 @@ def info_summary():
     else:
         print ("无今日借阅记录")
 
+###############################
+# 管理员目录
+###############################
 def admin():
     ###管理员模块###
     global meta_data, readers_df, books_df, history_df
     print (border1)
 
-    password = input("请输入【管理员密码】！退出请按【0】\n密码:") 
+    password = getpass.getpass(prompt="请输入【管理员密码】！退出请按【0】\n密码:") 
     while password != "0" and password != password_admin:
-        password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按0\n密码:")
     if password == "0":
         return
     instruction = ("\n【管理员】请按指示进行相关操作："
@@ -615,18 +749,18 @@ def admin():
                     "\n修改读者权限请按【4】"
                     "\n设置还书期限请按【5】"
                     "\n重置密码及登录信息请按【6】"
-                    "\n清空借阅记录请按【7】"
+                    "\n重置读者信息请按【7】"
                     "\n查看统计信息请按【8】"
                     "\n查询书目完整信息请按【9】"
                     "\n查询读者完整信息请按【10】"
-                    "\n恢复文件请按【11】"
+                    "\n恢复备份文件请按【11】"
                     "\n退出请按【0】\n")
     choice = input_request(border1 + instruction)
 
     while choice != "0":
 
         if choice == "1":
-            # 单本录入图书
+            logger.info("单本录入图书")
             print (border1)
             # 备份数据
             update_sql()
@@ -641,7 +775,6 @@ def admin():
                                 "price", "subject", "total_number", "call_no", "summary", "location"]
                     book_info_tuple = (book_info[col] for col in book_schema)
                     
-                    # global books_df
                     # 如果ISBN已经存在，并且用户同意合并信息，则只更改已存在条目中书籍总数
                     if book_info["isbn"] in set(books_df["isbn"]):
                         books_df.loc[books_df[books_df["isbn"]==isbn].index, "total_number"] = book_info["total_number"]
@@ -666,30 +799,62 @@ def admin():
                 isbn = input_request("输入ISBN，按0退出\n")
 
         elif choice == "2":
-            # 批量录入图书
+            logger.info("批量录入图书")
             print (border1)
             update_sql()
-            book_info_entry_batch() # TODO
+            book_info_entry_batch() # TODO 逻辑比较难实现，暂时搁置
 
         elif choice == "3":
-            # 自动生成借书号
+            logger.info("自动生成借书号")
             print (border1)
             update_sql()
             reader_id_generater() # TODO
-            print ("【读者借书号成功生成！】")
+            print ("【读者借书号成功生成，请重新打开软件!】")
             return True
         
         elif choice == "4":
-            # 修改读者权限
+            logger.info("修改读者权限")
             print (border1)
             update_sql()
             reader, _ = retrieve_reader_book(True, False)
-            if reader:
+            if reader: # TODO
                 print ("revise")
-            # TODO
+                # from old version
+                # readerid = input_request("请输入读者【借书号】，退出请按【0】\n读者借书号:")
+                # while readerid != "0":
+                #     try:
+                #         request_reader = data_reader[readerid]
+                #         print_request_reader(request_reader, False)
+                #         request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
+                #         while request != "0":
+                #             if request == "1":
+                #                 ws2.cell(row=request_reader["row"],column=10).value = "开通"
+                #                 wr2.save(reader)
+                #                 read_readerinfo()
+                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"借书权限开通成功！】")
+                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
+                #             elif request == "2":
+                #                 ws2.cell(row=request_reader["row"],column=10).value = "暂停"
+                #                 wr2.save(reader)
+                #                 read_readerinfo()
+                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"借书权限暂停成功！】")
+                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
+                #             elif request == "3":
+                #                 ws2.cell(row=request_reader["row"],column=11).value = None
+                #                 wr2.save(reader)
+                #                 read_readerinfo()
+                #                 print ("【" + request_reader["单位"]+request_reader["姓名"]+"过期次数重置成功！】")
+                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
+                #             else:
+                #                 print ("\n【错误代码，请重新输！】")
+                #                 request = input_request(header2+"\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n重置读者过期次数请按【3】\n退出请按【0】\n")
+                #         return
+                #     except Exception:
+                #         print ("\n【读者借书号不存在，请重新输入！】\n"+header2)
+                #         readerid = input_request("请输入读者【借书号】，退出还按【0】\n读者借书号:")
 
         elif choice == "5":
-            # 设置还书期限
+            logger.info("设置还书期限")
             print (border1)
             student_days = input("【学生】借书期限（天）：")
             teacher_days = input("【教师】借书期限（天）：")
@@ -703,7 +868,7 @@ def admin():
                 print ("【读者借书期限设置成功！】")
         
         elif choice == "6":
-            # 重置密码及登录信息
+            logger.info("重置密码及登录信息")
             print (border1)
             confirm = "999"
             while confirm != "1" and confirm != "0":
@@ -712,37 +877,39 @@ def admin():
                 print (border2)
                 meta_data["status"] = "0"
                 meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
-                print ("【密码及登录信息重置成功!】")
+                print ("【密码及登录信息重置成功，请重新打开软件!】")
                 return True
         
         elif choice == "7":
-            # 清空借阅记录
+            logger.info("重置读者信息")
             print (border1)
             confirm = "999"
             while confirm != "1" and confirm != "0":
-                confirm = input_request("该操作将【清空借阅记录】，但【不会】影响图书和读者信息。\n确认请按【1】，取消请按【0】")
+                confirm = input_request("该操作将【重置读者信息】，但【不会】影响图书信息和历史借阅记录。\n确认请按【1】，取消请按【0】")
             if confirm == "1":
                 print (border2)
-                # TODO 清空记录
-                print ("【借阅记录清空成功!】")
+                update_sql()
+                reader_reset() # TODO
+                print ("【读者信息重置成功，请重新打开软件!】")
                 return True
         
         elif choice == "8":
-            # 查看统计信息
+            logger.info("查看统计信息")
             print (border1)
-            info_summary() # TODO
+            info_summary()
 
         elif choice == "9":
-            # 查询书目完整信息
+            logger.info("查询书目完整信息")
             retrieve_reader_book(False, True, None)
             input("请按回车返回。")
 
         elif choice == "10":
-            # 查询读者完整信息
+            logger.info("查询读者完整信息")
             retrieve_reader_book(True, False, None)
             input("请按回车返回。")
 
         elif choice == "11":
+            logger.info("恢复备份文件")
             print (border1)
             print ("正在恢复文件中，请稍后...")
             sql_to_excel()
@@ -751,8 +918,12 @@ def admin():
 
         else:
             print("\n【错误代码，请重新输！】")
+        
         choice = input_request(border1 + instruction)
 
+###############################
+# 主目录
+###############################
 def main(meta_data):
     global password_admin, supposed_return_days_students, supposed_return_days_teachers, border1, border2, readers_dic, books_dic
     
@@ -772,9 +943,9 @@ def main(meta_data):
     print ("欢迎进入{}图书馆管理系统！".format(institution))
     print (border1)
 
-    password = input("请输入密码！退出请按【0】\n密码:")
+    password = getpass.getpass(prompt="请输入密码！退出请按【0】\n密码:")
     while password != "0" and password != password_main:
-        password = input("\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按0\n密码:")
     if password == "0":
         return
 
@@ -798,46 +969,46 @@ def main(meta_data):
     while choice != "0":
         
         if choice == "1":
-            # 借书
+            logger.info("借书")
             reader, book = retrieve_reader_book(True, True)
             while reader and book:
                 reader.check_in(book)
                 reader, book = retrieve_reader_book(True, True)
         
         elif choice == "2":
-            # 还书
+            logger.info("还书")
             reader, book = retrieve_reader_book(True, True)
             while reader and book:
                 reader.return_book(book)
                 reader, book = retrieve_reader_book(True, True)
         
         elif choice == "3":
-            # 查询书目信息
+            logger.info("查询书目信息")
             _, book = retrieve_reader_book(False, True)
             while book:
                 _, book = retrieve_reader_book(False, True)
         
         elif choice == "4":
-            # 查询读者信息
+            logger.info("查询读者信息")
             reader, _ = retrieve_reader_book(True, False)
             while reader:
                 reader, _ = retrieve_reader_book(True, False)
         
         elif choice == "5":
-            # 管理各类信息
+            logger.info("管理各类信息")
             if admin():
                 input("【请点击回车键后重新打开软件！】")
                 return
         
         elif choice == "6": 
-            # 帮助
+            logger.info("帮助")
             print (border2)
             print (("感谢使用此套图书管理系统！"
                     "\n软件作者：宋嘉勋"
-                    "\n联系方式：E-mail:jiaxun.song@outlook.com | 微信:360911702"))
+                    "\n联系方式：E-mail: jiaxun.song@outlook.com | 微信: 360911702"))
         
         else:
-            # 代码错误
+            logger.warn("代码错误")
             print ("\n【错误代码，请重新输！】")
         
         choice = input_request(border1 + instruction)
@@ -847,18 +1018,29 @@ if __name__ == '__main__':
     global meta_data, readers_df, books_df, history_df
     
     try:
+        logger.info("载入元数据")
         meta_data = initiallize()
     except:
+        logger.error("元数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
         print ("Bugs here. Contact the collaborator") # delete this later
+    
     try:
+        logger.info("载入读者、书籍数据")
         readers_df, books_df = load_data_libaray()
-    except Exception as e:
-        print (e)
+    except:
+        logger.error("读者、书籍据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
         print ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
+    
     try:
+        logger.info("载入借阅数据")
         history_df = load_data_history()
     except:
+        logger.error("借阅数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
         print ("请确认【借阅记录.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
 
     if "meta_data" in globals() and "readers_df" in globals() and "history_df" in globals():
-        main(meta_data)
+        try:
+            logger.info("启动主程序")
+            main(meta_data)
+        except:
+            logger.error("\n" + "".join(traceback.format_exception(*sys.exc_info())))
