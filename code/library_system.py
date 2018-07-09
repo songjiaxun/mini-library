@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+from collections import deque
 from datetime import datetime
 import getpass # 输入密码
 import numpy as np
@@ -13,6 +14,10 @@ import os
 import time
 import traceback
 
+from colorama import init
+init(autoreset=True)
+from colorama import Fore, Back, Style
+
 ###############################
 # 系统设置
 ###############################
@@ -25,10 +30,8 @@ def _create_logger(logger_name):
     logger.setLevel(logging.INFO)
 
     # create file handler
-    if not os.path.isdir("./logs"):
-        os.makedirs("./logs")
-    log_path = f"./logs/{logger_name}-{datetime.now():%Y-%m-%dT%H:%M:%S.%f}.log"
-    fh = logging.FileHandler(log_path, mode='w')
+    log_path = f"./{logger_name}.log"
+    fh = logging.FileHandler(log_path, mode='a') # when mode = 'w', a new file will be created each time.
     fh.setLevel(logging.INFO)
     
     # create formatter
@@ -45,6 +48,7 @@ logger = _create_logger("mini-library")
 
 # 中文对齐
 pd.set_option('display.unicode.east_asian_width',True)
+pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.expand_frame_repr',False)
 
 ###############################
@@ -84,12 +88,12 @@ class Reader():
         index_list = []
         groups = record.groupby("isbn")
         for _, group in groups:
-            queue = [] # TODO: replace with real queue
+            queue = deque([])
             for i in group.index:
                 if group.loc[i, "action"] == "借书":
                     queue.append(i)
                 else:
-                    queue.pop(0)
+                    queue.popleft()
             index_list += queue
         return record.loc[index_list]
 
@@ -147,14 +151,14 @@ class Reader():
         
     def check_in(self, book):
         if self.access != "开通":
-            print ("【读者没有开通借书权限！】")
+            print (Fore.RED + "【借书失败：读者没有开通借书权限！】")
             return False
         if self.unreturned_book_number >= self.quota:
-            print ("【读者超过借书额度！】")
+            print (Fore.RED + "【借书失败：读者超过借书额度！】")
             return False
         if self.due_count > 0:
             print (border2)
-            print ("【读者有过期书籍，请还书后再借！】")
+            print (Fore.RED + "【借书失败：读者有过期书籍，请还书后再借！】")
             temp = self.due_record.copy()
             temp = temp[["date_time", "action", "isbn", "title", "return_date"]]
             temp.columns = ["借书时间", "动作", "ISBN", "书籍", "应还书时间"]
@@ -162,7 +166,7 @@ class Reader():
             print (temp)
             return False
         if book.avaliable_number <= 0:
-            print ("【馆藏本书不足！】")
+            print (Fore.RED + "【借书失败：馆藏本书不足！】")
             return False
 
         self.insert_hitory_record(self, book, "借书")
@@ -170,24 +174,24 @@ class Reader():
         book.update_data()
         update_sql()
         update_excel_history()
-        print ("【借书成功！】")
+        print (Fore.GREEN + "【借书成功！】")
         return True
 
     def return_book(self, book):
         if book.isbn not in self._unreturned_record["isbn"].values:
-            print ("【读者未借阅该书籍！】")
+            print (Fore.RED + "【读者未借阅该书籍！】")
             return False
         self.insert_hitory_record(self, book, "还书")
         self.update_data()
         book.update_data()
         update_sql()
         update_excel_history()
-        print ("【还书成功！】")
+        print (Fore.GREEN + "【还书成功！】")
         return True
 
     def loose_book(self, book):
         if book.isbn not in self._unreturned_record["isbn"].values:
-            print ("【读者未借阅该书籍！】")
+            print (Fore.RED + "【读者未借阅该书籍！】")
             return False
         self.insert_hitory_record(self, book, "丢书")
         self.update_data()
@@ -195,7 +199,7 @@ class Reader():
         self.reader_access_revise("丢书")
         update_sql()
         update_excel_history()
-        print ("【丢失书籍，借书权限将被暂停！】")
+        print (Fore.RED + "【丢失书籍，借书权限将被暂停！】")
         return True
 
     def reader_access_revise(self, access):
@@ -259,7 +263,7 @@ class Book():
             if limit < len(self.book_history):
                 print ("记录太长已被省略，请至“管理各类信息”中查询完整记录。")
         else:
-            print ("【本书暂无借阅记录。】")
+            print (Fore.RED + "【本书暂无借阅记录。】")
 
 ###############################
 # 载入数据
@@ -348,6 +352,9 @@ def sql_to_excel():
     writer_history = pd.ExcelWriter("借阅记录_恢复.xlsx")
     history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
+    writer_library.save()
+    writer_history.save()
+
 ## 在内存中创建对象
 def reader_to_obj(reader_id, force=False):
     global readers_df, readers_dic
@@ -402,7 +409,7 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
 def __check10(isbn):
     match = re.search(r'^(\d{9})(\d|X)$', isbn)
     if not match:
-        print ("【ISBN-10格式错误：{}应为10位纯数字或'X'结尾，请检查输入设备。】".format(isbn))
+        print (Fore.RED + "【ISBN-10格式错误：{}应为10位纯数字或'X'结尾，请检查输入设备。】".format(isbn))
         return False
     digits = match.group(1)
     check_digit = 10 if match.group(2) == 'X' else int(match.group(2))
@@ -410,13 +417,13 @@ def __check10(isbn):
     if (result % 11) != check_digit:
         return True
     # print (result % 11)
-    print ("【ISBN-10校验错误：{}，请检查输入设备。】".format(isbn))
+    print (Fore.RED + "【ISBN-10校验错误：{}，请检查输入设备。】".format(isbn))
     return False
 
 def __check13(isbn):
     match = re.search(r'^(\d{12})(\d)$', isbn)
     if not match:
-        print ("【ISBN-13格式错误：{}应为13位纯数字，请检查输入设备。】".format(isbn))
+        print (Fore.RED + "【ISBN-13格式错误：{}应为13位纯数字，请检查输入设备。】".format(isbn))
         return False
     digits = match.group(1)
     check_digit = int(match.group(2))
@@ -424,7 +431,7 @@ def __check13(isbn):
     if (result % 10) == check_digit:
         return True
     # print (result % 10)
-    print ("【ISBN-13校验错误：{}，请检查输入设备。】".format(isbn))
+    print (Fore.RED + "【ISBN-13校验错误：{}，请检查输入设备。】".format(isbn))
     return False
 
 # count = 0
@@ -448,7 +455,7 @@ def check_isbn(isbn):
         return __check10(isbn)
     if len(isbn) == 13:
         return __check13(isbn)
-    print ("【ISBN码长度错误：{}应为10位或13位，请检查输入设备。】".format(isbn))
+    print (Fore.RED + "【ISBN码长度错误：{}应为10位或13位，请检查输入设备。】".format(isbn))
     return False
 
 
@@ -462,7 +469,7 @@ def book_info_entry_single(isbn):
     # 检查isbn，本数和位置信息，如果不正确返回空值，不录入数据库
     # 检查isbn格式
     if (len(isbn) != 10 or not re.search(r'^(\d{9})(\d|X)$', isbn)) and (len(isbn) != 13 or not re.search(r'^(\d{12})(\d)$', isbn)):
-        print ("【{}为错误的ISBN码，应为[9位纯数字+'X'结尾]或[10位纯数字]或[13位纯数字]，请检查输入设备。】".format(isbn))
+        print (Fore.RED + "【{}为错误的ISBN码，应为[9位纯数字+'X'结尾]或[10位纯数字]或[13位纯数字]，请检查输入设备。】".format(isbn))
         return
     # if len(isbn)<5 or isbn[:1] == "91" or (not isbn.isdigit()):
         # print ("【{}为错误的ISBN码，请检查输入设备。】".format(isbn))
@@ -474,7 +481,7 @@ def book_info_entry_single(isbn):
     if total_number == "0":
         return
     if not total_number.isdigit():
-        print ("非数字！请重新输入！")
+        print (Fore.RED + "非数字！请重新输入！")
         return
     data["total_number"] = int(total_number)
     # 输入书籍位置
@@ -486,7 +493,7 @@ def book_info_entry_single(isbn):
     # 如果书籍已经存在，询问是否合并
     if isbn in set(books_df["isbn"]):
         book_existed = book_to_obj(isbn)
-        print ("【书目已存在于数据库中】，信息如下：")
+        print (Fore.RED + "【书目已存在于数据库中】，信息如下：")
         print ("书籍名称:", book_existed.title)
         print ("馆藏本数:", book_existed.total_number)
         print ("书籍位置:", book_existed.location)
@@ -504,8 +511,8 @@ def book_info_entry_single(isbn):
             return
 
     # 定义爬虫
-    spider_functions = [getinfo_guotu2, getinfo_guotu1, getinfo_douban]
-    spider_names = ["国图2", "国图1", "豆瓣"]
+    spider_functions = [getinfo_guotu1, getinfo_guotu2, getinfo_douban]
+    spider_names = ["国图1", "国图2", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
         logger.info(f"从{name}获取书籍信息 - {isbn}")
@@ -643,7 +650,7 @@ def info_summary():
                                                     .iloc[:20,])
     popular_book = pd.DataFrame(popular_book).reset_index()
     popular_book.columns = ["ISBN", "标题", "位置", "借阅次数"]
-    popular_book.index = np.arange(1, 21)
+    popular_book.index = np.arange(1, min(20, len(popular_book))+1)
 
     # 最勤奋的20位读者
     good_reader = (record[record["action"]=="借书"].groupby(["reader_id", "reader_name", "unit"])["isbn"]
@@ -652,7 +659,7 @@ def info_summary():
                                                     .iloc[:20,])
     good_reader = pd.DataFrame(good_reader).reset_index()
     good_reader.columns = ["借书号", "姓名", "单位", "借阅次数"]
-    good_reader.index = np.arange(1, 21)
+    good_reader.index = np.arange(1, min(20, len(good_reader))+1)
 
     # 过期未还书的读者
     due_reader = record
@@ -660,13 +667,13 @@ def info_summary():
     index_list = []
     groups = due_reader.groupby(["reader_id", "isbn"])
     for _, group in groups:
-        queue = [] # TODO: replace with real queue
+        queue = deque([])
         for i in group.index:
             if group.loc[i, "action"] == "借书":
                 queue.append(i)
             else:
                 try:
-                    queue.pop(0)
+                    queue.popleft()
                 except:
                     logger.error("借书记录错误！")
                     logger.error(group.loc[i, ["reader_name", "reader_id", "action"]])
@@ -710,7 +717,7 @@ def admin():
 
     password = getpass.getpass(prompt="请输入【管理员密码】！退出请按【0】\n密码:") 
     while password != "0" and password != password_admin:
-        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按【0】\n密码:")
+        password = getpass.getpass(prompt="【密码错误！】\n请输入密码！退出请按【0】\n密码:")
     if password == "0":
         return
     instruction = ( "\n【管理员】请按指示进行相关操作："
@@ -752,10 +759,10 @@ def admin():
                         # 如果ISBN不存在，则插入新的信息
                         print (border2)
                         if book_info["status"]:
-                            print ("联网数据获得成功，数据源：{}".format(book_info["source"]))
+                            print (Fore.GREEN + "联网数据获得成功，数据源：{}".format(book_info["source"]))
                         else:
                             # 无论书籍信息是否获取成功，这一条信息都会被插入到excel中
-                            print ("联网数据获得失败，请打开“图书馆信息.xlsx”文件手动添加书籍信息。")
+                            print (Fore.RED + "联网数据获得失败，请打开“图书馆信息.xlsx”文件手动添加书籍信息。")
                         record = pd.DataFrame([book_info_tuple], columns=book_schema)
                         books_df = pd.concat([books_df, record], ignore_index=True, sort=False)
                     
@@ -780,7 +787,7 @@ def admin():
             print (border1)
             update_sql()
             reader_id_generater()
-            print ("【读者借书号成功生成，请重新打开软件!】")
+            print (Fore.GREEN + "【读者借书号成功生成，请重新打开软件!】")
             return True
         
         elif choice == "4":
@@ -788,17 +795,21 @@ def admin():
             update_sql()
             reader, _ = retrieve_reader_book(True, False)
             if reader:
-                request = input_request("\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n退出请按【0】\n")
+                request = input_request(("\n开通读者借书权限请按【1】"
+                                        "\n暂停读者借书权限请按【2】"
+                                        "\n退出请按【0】\n"))
                 while request not in ["1", "2", "0"]:
-                    request = input_request("\n开通读者借书权限请按【1】\n暂停读者借书权限请按【2】\n退出请按【0】\n")
+                    request = input_request(("\n开通读者借书权限请按【1】"
+                                            "\n暂停读者借书权限请按【2】"
+                                            "\n退出请按【0】\n"))
                 if request == "1":
                     reader.reader_access_revise("开通")
                     reader.print_info(5)
-                    input ("【读者权限修改成功！】")
+                    input (Fore.GREEN + "【读者权限修改成功！请按回车键返回。】")
                 elif request == "2":
                     reader.reader_access_revise("暂停")
                     reader.print_info(5)
-                    input ("【读者权限修改成功！】")
+                    input (Fore.GREEN + "【读者权限修改成功！请按回车键返回。】")
 
         elif choice == "5":
             logger.info("设置还书期限")
@@ -807,24 +818,26 @@ def admin():
             teacher_days = input("【教师】借书期限（天）：")
             confirm = "999"
             while confirm != "1" and confirm != "0":
-                confirm = input_request("该操作将设置读者借书期限，但【不会】影响书籍信息、读者信息和借阅记录。\n确认请按【1】，取消请按【0】")
+                confirm = input_request(("该操作将设置读者借书期限，但【不会】影响书籍信息、读者信息和借阅记录。"
+                                        "\n确认请按【1】，取消请按【0】"))
             if confirm == "1":
                 meta_data["student_days"] = student_days # TODO 
                 meta_data["teacher_days"] = teacher_days
                 meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
-                print ("【读者借书期限设置成功！】")
+                print (Fore.GREEN + "【读者借书期限设置成功！】")
         
         elif choice == "6":
             logger.info("重置密码及登录信息")
             print (border1)
             confirm = "999"
             while confirm != "1" and confirm != "0":
-                confirm = input_request("该操作将重置软件登录信息及密码，但【不会】影响书籍信息、读者信息和借阅记录。\n确认请按【1】，取消请按【0】")
+                confirm = input_request(("该操作将重置软件登录信息及密码，但【不会】影响书籍信息、读者信息和借阅记录。"
+                                        "\n确认请按【1】，取消请按【0】"))
             if confirm == "1":
                 print (border2)
                 meta_data["status"] = "0"
                 meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
-                print ("【密码及登录信息重置成功，请重新打开软件!】")
+                print (Fore.GREEN + "【密码及登录信息重置成功，请重新打开软件!】")
                 return True
         
         elif choice == "7":
@@ -835,23 +848,23 @@ def admin():
         elif choice == "8":
             logger.info("查询书目完整信息")
             retrieve_reader_book(False, True, None)
-            input("请按回车返回。")
+            input("请按回车键返回。")
 
         elif choice == "9":
             logger.info("查询读者完整信息")
             retrieve_reader_book(True, False, None)
-            input("请按回车返回。")
+            input("请按回车键返回。")
 
         elif choice == "10":
             logger.info("恢复备份文件")
             print (border1)
             print ("正在恢复文件中，请稍后...")
             sql_to_excel()
-            print ("文件恢复完成，请返回到软件所在目录。")
-            input ("点击回车键确认退出。")
+            print (Fore.GREEN + "【文件恢复完成，请返回到软件所在目录。】")
+            input ("请按回车键确认退出。")
 
         else:
-            print("\n【错误代码，请重新输！】")
+            print(Fore.RED + "【错误代码，请重新输！】")
         
         choice = input_request(border1 + instruction)
 
@@ -868,24 +881,24 @@ def main(meta_data):
     supposed_return_days_students = meta_data["student_days"].item()
     supposed_return_days_teachers = meta_data["teacher_days"].item()
 
-    border1 = "=" * 100
-    border2 = "-" * 100
+    border1 = "=" * 80
+    border2 = "-" * 80
 
     readers_dic = {}
     books_dic = {}
 
     print (border1)
-    print ("欢迎进入{}图书馆管理系统！".format(institution))
+    print (f"欢迎进入{institution}图书馆管理系统！")
     print (border1)
 
     password = getpass.getpass(prompt="请输入密码！退出请按【0】\n密码:")
     while password != "0" and password != password_main:
-        password = getpass.getpass(prompt="\n【密码错误！】\n请输入密码！退出请按0\n密码:")
+        password = getpass.getpass(prompt="【密码错误！】\n请输入密码！退出请按0\n密码:")
     if password == "0":
         return
 
     print (border1)
-    print ("【密码正确，欢迎使用！】")
+    print (Fore.GREEN + "【密码正确，欢迎使用！】")
     print (border2)
     
     book_number_unique, book_number, reader_number = summary()
@@ -944,11 +957,12 @@ def main(meta_data):
         
         else:
             logger.warn("代码错误")
-            print ("\n【错误代码，请重新输！】")
+            print (Fore.RED + "【错误代码，请重新输！】")
         
         choice = input_request(border1 + instruction)
 
 if __name__ == '__main__':
+    logger.info("=" * 80)
 
     global meta_data, readers_df, books_df, history_df
     
