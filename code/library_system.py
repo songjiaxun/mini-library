@@ -31,7 +31,8 @@ def _create_logger(logger_name):
 
     # create file handler
     log_path = f"./{logger_name}.log"
-    fh = logging.FileHandler(log_path, mode='a') # when mode = 'w', a new file will be created each time.
+    fh = logging.FileHandler(log_path, mode='a', encoding='gbk')
+    # when mode = 'w', a new file will be created each time.
     fh.setLevel(logging.INFO)
     
     # create formatter
@@ -311,7 +312,7 @@ def update_excel_library():
     readers_copy.columns = readers_schema
     books_copy.columns = books_schema
 
-    writer_library = pd.ExcelWriter("图书馆信息.xlsx")
+    writer_library = pd.ExcelWriter(os.path.join(os.getcwd(), "图书馆信息.xlsx"))
     readers_copy.to_excel(writer_library, sheet_name="读者", index=False)
     books_copy.to_excel(writer_library, sheet_name="书籍", index=False)
     writer_library.save()
@@ -322,7 +323,7 @@ def update_excel_history():
     history_schema = ["时间", "单位", "姓名", "借书号", "动作", "ISBN", "书名", "书籍位置", "还书期限"]
     history_copy.columns = history_schema
 
-    writer_history = pd.ExcelWriter("借阅记录.xlsx")
+    writer_history = pd.ExcelWriter(os.path.join(os.getcwd(), "借阅记录.xlsx"))
     history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
     writer_history.save()
 
