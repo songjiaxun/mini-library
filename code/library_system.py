@@ -21,45 +21,6 @@ from colorama import Fore, Back, Style
 
 logger = dm.logger
 
-import logging
-import sys
-import os
-import time
-import traceback
-
-from colorama import init
-init(autoreset=True)
-from colorama import Fore, Back, Style
-
-###############################
-# 系统设置
-###############################
-
-## 创建日志
-def _create_logger(logger_name):
-    
-    # create logger
-    logger = logging.getLogger(logger_name)
-    logger.setLevel(logging.INFO)
-
-    # create file handler
-    log_path = f"./{logger_name}.log"
-    fh = logging.FileHandler(log_path, mode='a', encoding='gbk')
-    # when mode = 'w', a new file will be created each time.
-    fh.setLevel(logging.INFO)
-    
-    # create formatter
-    fmt = "%(asctime)s %(levelname)s - %(message)s"
-    datefmt = "%Y-%m-%d %H:%M:%S"
-    formatter = logging.Formatter(fmt, datefmt)
-
-    # add handler and formatter to logger
-    fh.setFormatter(formatter)
-    logger.addHandler(fh)
-    return logger
-
-logger = _create_logger("mini-library")
-
 # 中文对齐
 pd.set_option('display.unicode.east_asian_width',True)
 pd.set_option('display.unicode.ambiguous_as_wide', True)
