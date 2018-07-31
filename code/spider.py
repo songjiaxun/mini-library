@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import requests
 from lxml import etree
 import re
@@ -67,7 +69,6 @@ def getinfo_guotu1(isbn, data, timeout=10):
     """
     国家图书馆数据库1，首选
     """
-
     print ("从国家图书馆数据库1中获得数据...")
     data["isbn"] = isbn
     
@@ -158,7 +159,7 @@ def getinfo_guotu1(isbn, data, timeout=10):
 
 def getinfo_guotu2(isbn, data, timeout=10):
     """
-    国家图书馆数据库2，书目不全
+    国家图书馆数据库2，书目不全，但信息准确
     没有价格信息
     """
     print ("从国家图书馆数据库2中获得数据...")
