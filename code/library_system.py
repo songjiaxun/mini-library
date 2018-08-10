@@ -19,12 +19,12 @@ logger = dm.logger
 pd.set_option('display.unicode.east_asian_width',True)
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.expand_frame_repr',False)
-pd.set_option('display.width',200)
-pd.set_option('display.max_colwidth',100)
+pd.set_option('display.width',100)
+pd.set_option('display.max_colwidth',50)
 pd.set_option('display.max_row',500)
 
-border1 = "=" * 80
-border2 = "-" * 80
+border1 = "=" * 100
+border2 = "-" * 100
 
 readers_dic = {}
 books_dic = {}

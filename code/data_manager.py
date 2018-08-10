@@ -143,7 +143,7 @@ class Reader():
             print (Fore.RED + "【借书失败：读者超过借书额度！】")
             return False
         if self.due_count > 0:
-            border2 = "-" * 80 # ...
+            border2 = "-" * 100
             print (border2)
             print (Fore.RED + "【借书失败：读者有过期书籍，请还书后再借！】")
             temp = self.due_record.copy()

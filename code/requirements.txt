@@ -1,4 +1,4 @@
-setuptools>=18.2
+setuptools
 xlrd
 openpyxl
 numpy
@@ -6,3 +6,4 @@ pandas
 lxml
 requests
 pyinstaller
+colorama
