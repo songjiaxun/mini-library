@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from collections import deque
 from datetime import datetime
 import getpass # 输入密码
@@ -7,12 +5,8 @@ import numpy as np
 import pandas as pd
 from spider import *
 import data_manager as dm
-
 import sys
 import traceback
-
-# from colorama import init
-# init(autoreset=True)
 from colorama import Fore, Back, Style
 
 ###############################
@@ -25,17 +19,23 @@ logger = dm.logger
 pd.set_option('display.unicode.east_asian_width',True)
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.expand_frame_repr',False)
+pd.set_option('display.width',200)
+pd.set_option('display.max_colwidth',100)
+pd.set_option('display.max_row',500)
 
 border1 = "=" * 80
 border2 = "-" * 80
 
-
 readers_dic = {}
 books_dic = {}
 
-## 在内存中创建对象
+###############################
+# 初始化对象
+###############################
 def reader_to_obj(reader_id, force=False):
-    # global readers_df, readers_dic
+    """
+    在内存中创建Reader对象
+    """
     if reader_id not in readers_df["reader_id"].values:
         return None
     elif reader_id not in readers_dic or force:
@@ -43,15 +43,19 @@ def reader_to_obj(reader_id, force=False):
     return readers_dic[reader_id]
 
 def book_to_obj(isbn, force=False):
-    # global books_df, books_dic
+    """
+    在内存中创建Book对象
+    """
     if isbn not in books_df["isbn"].values:
         return None
     elif isbn not in books_dic or force:
         books_dic[isbn] = dm.Book(books_df[books_df["isbn"]==isbn].iloc[0])
     return books_dic[isbn]
 
-## 打印读者/书籍信息，创建对象，并返回对象
 def retrieve_reader_book(reader_option, book_option, limit=5):
+    """
+    打印读者/书籍信息，创建对象，并返回对象
+    """
     reader = None
     book = None
 
@@ -81,19 +85,16 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
 
     return reader, book
 
-
 ###############################
 # 爬虫相关
 ###############################
 def book_info_entry_single(isbn):
-    # global books_df
     # 图书数据
     book_schema = ["isbn", "title", "author", "publisher", "publish_date", "page_number", 
                "price", "subject", "total_number", "call_no", "summary", "location"]
     data = {col : None for col in book_schema}
 
     # 检查isbn，本数和位置信息，如果不正确返回空值，不录入数据库
-    
     # 检查isbn格式（由于豆瓣数据库不检查校验数位，且国内部分书籍校验数位不符，所以暂且只查基础格式是否正确）
     if (len(isbn) != 10 or not re.search(r'^(\d{9})(\d|X)$', isbn)) and (len(isbn) != 13 or not re.search(r'^(\d{12})(\d)$', isbn)):
         print (Fore.RED + "【{}为错误的ISBN码，应为[9位纯数字+'X'结尾]或[10位纯数字]或[13位纯数字]，请检查输入设备。】".format(isbn))
@@ -152,21 +153,24 @@ def book_info_entry_single(isbn):
     return book_info
 
 def book_info_entry_batch():
-    print ("若想批量录入图书请联系作者：jiaxun.song@outlook.com，谢谢！")
+    input ("若想批量录入图书请联系作者：chenshenghan.17@fellow.tfchina.org，谢谢！")
 
 ###############################
 # 通用功能
 ###############################
 def input_request(instruction):
-    ###信息输入###
+    """
+    信息输入
+    """
     user_input = input(instruction)
     while user_input == "":
         user_input = input(instruction)
     return user_input
 
 def summary():
-    ###统计馆藏本书、注册读者数等信息###
-    # global readers_df, books_df
+    """
+    统计馆藏本书、注册读者数等信息
+    """
     book_number_unique = len(books_df)
     book_number = books_df["total_number"].sum()
     reader_number = len(readers_df)
@@ -176,8 +180,9 @@ def summary():
 # 管理员功能
 ###############################
 def reader_id_generater():
-    ###自动生成借书号###
-    # global readers_df
+    """
+    自动生成借书号
+    """
     grade = {
             "一": "1",
             "二": "2",
@@ -212,14 +217,15 @@ def reader_id_generater():
             readers_df.iloc[group.index,0] = [f"{teacher_id:04d}" 
                                                 for teacher_id in range(1, group.index.shape[0]+1)]
         else:
-            grade_id = grade[unit[0]]
-            class_id = "0"
-            for class_name in class_num:
-                if class_name in unit[1:]:
-                    class_id = class_num[class_name]
-                    break
-            readers_df.iloc[group.index,0] = [f"{grade_id}{class_id}{student_id:02d}" 
-                                                for student_id in range(1, group.index.shape[0]+1)]
+            grade_id = grade.get(unit[0], None)
+            if grade_id:
+                class_id = "0"
+                for class_name in class_num:
+                    if class_name in unit[1:]:
+                        class_id = class_num[class_name]
+                        break
+                readers_df.iloc[group.index,0] = [f"{grade_id}{class_id}{student_id:02d}" 
+                                                    for student_id in range(1, group.index.shape[0]+1)]
     dm.update_excel_library()
 
 def info_summary():
@@ -307,13 +313,16 @@ def info_summary():
 # 管理员目录
 ###############################
 def admin(password_admin):
-    ###管理员模块###
-    global books_df # , meta_data
+    """
+    管理员模块
+    """
+    global books_df
     print (border1)
 
     password = getpass.getpass(prompt="请输入【管理员密码】！退出请按【0】\n密码:") 
     while password != "0" and password != password_admin:
-        password = getpass.getpass(prompt="【密码错误！】\n请输入密码！退出请按【0】\n密码:")
+        print (Fore.RED + "【密码错误！】")
+        password = getpass.getpass(prompt="请输入密码！退出请按【0】\n密码:")
     if password == "0":
         return
     instruction = ( "\n【管理员】请按指示进行相关操作："
@@ -383,7 +392,7 @@ def admin(password_admin):
             print (border1)
             dm.update_sql()
             reader_id_generater()
-            print (Fore.GREEN + "【读者借书号成功生成，请重新打开软件!】")
+            print (Fore.GREEN + "【读者借书号成功生成!】")
             return True
         
         elif choice == "4":
@@ -433,7 +442,7 @@ def admin(password_admin):
                 print (border2)
                 meta_data["status"] = "0"
                 meta_data.to_sql("Meta", dm.get_connection(), if_exists="replace", index=False)
-                print (Fore.GREEN + "【密码及登录信息重置成功，请重新打开软件!】")
+                print (Fore.GREEN + "【密码及登录信息重置成功!】")
                 return True
         
         elif choice == "7":
@@ -456,8 +465,9 @@ def admin(password_admin):
             print (border1)
             print ("正在恢复文件中，请稍后...")
             dm.sql_to_excel()
-            print (Fore.GREEN + "【文件恢复完成，请返回到软件所在目录。】")
-            input ("请按回车键确认退出。")
+            print (Fore.GREEN + "【文件恢复完成！】")
+            print (Fore.GREEN + "【请返回到软件所在目录的“备份恢复”文件夹，用恢复所得文件覆盖原文件。】")
+            return True
 
         else:
             print(Fore.RED + "【错误代码，请重新输！】")
@@ -481,7 +491,8 @@ def main(meta_data):
 
     password = getpass.getpass(prompt="请输入密码！退出请按【0】\n密码:")
     while password != "0" and password != password_main:
-        password = getpass.getpass(prompt="【密码错误！】\n请输入密码！退出请按0\n密码:")
+        print (Fore.RED + "【密码错误！】")
+        password = getpass.getpass(prompt="请输入密码！退出请按0\n密码:")
     if password == "0":
         return
 
@@ -540,8 +551,8 @@ def main(meta_data):
             logger.info("帮助")
             print (border2)
             print (("感谢使用此套图书管理系统！"
-                    "\n软件作者：宋嘉勋"
-                    "\n联系方式：E-mail: jiaxun.song@outlook.com | 微信: 360911702"))
+                    "\n软件作者：陈胜寒、宋嘉勋"
+                    "\n联系方式：E-mail: chenshenghan.17@fellow.tfchina.org | jiaxun.song@outlook.com"))
         
         else:
             logger.warn("代码错误")
@@ -560,4 +571,4 @@ if __name__ == '__main__':
             main(meta_data)
         except:
             logger.error("\n" + "".join(traceback.format_exception(*sys.exc_info())))
-            input("软件运行出现错误，请联系作者：jiaxun.song@outlook.com，谢谢！")
+            input("软件运行出现错误，请联系作者：chenshenghan.17@fellow.tfchina.org，谢谢！")

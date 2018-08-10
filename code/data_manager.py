@@ -12,10 +12,10 @@ import traceback
 from colorama import init, Fore
 init(autoreset=True)
 
-
-## 创建日志
 def _create_logger(logger_name):
-    
+    """
+    创建日志
+    """
     # create logger
     logger = logging.getLogger(logger_name)
     logger.setLevel(logging.INFO)
@@ -37,10 +37,6 @@ def _create_logger(logger_name):
     return logger
 
 logger = _create_logger("mini-library")
-
-
-
-
 
 ###############################
 # 读者和书籍类
@@ -106,17 +102,17 @@ class Reader():
                 f"未还本书：{self.unreturned_book_number}\n"
                 f"过期本书：{self.due_count}"))
         record = self.reader_history.copy()
-        if not limit:
-            limit = len(record)
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "action", "isbn", "title"]]
         record.columns = ["时间", "动作", "ISBN", "标题"]
-        if len(record):
+        if not len(record):
+            print (Fore.RED + "【该读者暂无借阅记录。】")
+        elif not limit:
             print (record)
+        else:
+            print (record.head(limit))
             if limit < len(self.reader_history):
                 print ("记录太长已被省略，请至“管理各类信息”中查询完整记录。")
-        else:
-            print ("【该读者暂无借阅记录。】")
 
     def insert_hitory_record(self, reader, book, action):
         date_time = pd.Timestamp(datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
@@ -128,12 +124,11 @@ class Reader():
         title = book.title
         location = book.location
 
-        # global meta_data
         if reader.unit == "教师":
             return_day = int(meta_data["student_days"])
         else:
             return_day = int(meta_data["teacher_days"])
-        record = (date_time, unit, reader_name, reader_id, action, isbn, title, location, return_day) # changed from 15 to return_day, please verify
+        record = (date_time, unit, reader_name, reader_id, action, isbn, title, location, return_day)
         record = pd.DataFrame([record], columns=["date_time", "unit", "reader_name", "reader_id", "action", 
                                                  "isbn", "title", "location", "return_day"])
 
@@ -196,7 +191,6 @@ class Reader():
 
     def reader_access_revise(self, access):
         self.access = access
-        # global readers_df
         index = readers_df[readers_df["reader_id"]==self.reader_id].index
         readers_df.loc[index, "access"] = access
         update_sql()
@@ -223,7 +217,6 @@ class Book():
         self.avaliable_number = self.cal_avaliable_number()
 
     def get_history(self):
-        # global history_df
         return history_df[history_df["isbn"]==self.isbn]
 
     def cal_avaliable_number(self):
@@ -245,17 +238,17 @@ class Book():
                 f"馆藏本书：{self.total_number}\n"
                 f"剩余本书：{self.avaliable_number}"))
         record = self.book_history.copy()
-        if not limit:
-            limit = len(record)
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "unit", "reader_name", "reader_id", "action"]]
         record.columns = ["时间", "单位", "读者ID", "读者", "动作"]
-        if len(record):
+        if not len(record):
+            print (Fore.RED + "【本书暂无借阅记录。】")
+        elif not limit:
             print (record)
+        else:
+            print (record.head(limit))
             if limit < len(self.book_history):
                 print ("记录太长已被省略，请至“管理各类信息”中查询完整记录。")
-        else:
-            print (Fore.RED + "【本书暂无借阅记录。】")
 
 ###############################
 # 载入数据
@@ -285,14 +278,12 @@ def get_connection(db_path='library.db'):
     return sql.connect(db_path, timeout=10)
 
 def update_sql():
-    # global readers_df, books_df, history_df
     conn = get_connection()
     readers_df.to_sql("Readers", conn, if_exists="replace", index=False)
     books_df.to_sql("Books", conn, if_exists="replace", index=False)
     history_df.to_sql("History", conn, if_exists="replace", index=False)
 
 def update_excel_library():
-    # global readers_df, books_df
     readers_copy = readers_df.copy(deep=True)
     books_copy = books_df.copy(deep=True)
 
@@ -309,7 +300,6 @@ def update_excel_library():
     writer_library.save()
 
 def update_excel_history():
-    # global history_df
     history_copy = history_df.copy(deep=True)
     history_schema = ["时间", "单位", "姓名", "借书号", "动作", "ISBN", "书名", "书籍位置", "还书期限"]
     history_copy.columns = history_schema
@@ -337,20 +327,25 @@ def sql_to_excel():
     books_df.columns = books_schema
     history_df.columns = history_schema
 
-    writer_library = pd.ExcelWriter("图书馆信息_恢复.xlsx")
+    backup_path = os.path.join(os.getcwd(), "备份恢复")
+    if not os.path.isdir(backup_path):
+        os.makedirs(backup_path)
+
+    writer_library = pd.ExcelWriter(os.path.join(backup_path, "图书馆信息.xlsx"))
     readers_df.to_excel(writer_library, sheet_name="读者", index=False)
     books_df.to_excel(writer_library, sheet_name="书籍", index=False)
 
-    writer_history = pd.ExcelWriter("借阅记录_恢复.xlsx")
+    writer_history = pd.ExcelWriter(os.path.join(backup_path, "借阅记录.xlsx"))
     history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
     writer_library.save()
     writer_history.save()
 
 
-
 def initiallize():
-    ###初始化###
+    """
+    初始化
+    """
     conn = get_connection()
     pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
@@ -359,7 +354,7 @@ def initiallize():
 
     # sanity check -- remove later: "status" not in data (when there's "status" but no item???)
     if "status" not in data:
-        data["status"] = ["1"] # I don't understand!
+        data["status"] = ["1"]
     elif data["status"].item() is None:
         print ("data['status'].item() is None")
 
@@ -374,7 +369,6 @@ def initiallize():
         data["teacher_days"] = 30
         data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
     return data
-
 
 
 def start():
