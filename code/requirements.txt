@@ -1,8 +1,0 @@
-setuptools>=18.2
-xlrd
-openpyxl
-numpy
-pandas
-lxml
-requests
-pyinstaller
