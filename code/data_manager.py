@@ -21,7 +21,7 @@ def _create_logger(logger_name):
     logger.setLevel(logging.INFO)
 
     # create file handler
-    log_path = f"./{logger_name}.log"
+    log_path = "./{}.log".format(logger_name)
     fh = logging.FileHandler(log_path, mode='a', encoding='gbk')
     # when mode = 'w', a new file will be created each time.
     fh.setLevel(logging.INFO)
@@ -93,14 +93,14 @@ class Reader():
         return pd.DataFrame()
 
     def print_info(self, limit=None):
-        print ((f"借书号：{self.reader_id}\n"
-                f"姓名：{self.name}\n"
-                f"性别：{self.gender}\n"
-                f"单位：{self.unit}\n"
-                f"借书权限：{self.access}\n"
-                f"借书额度：{self.quota}\n"
-                f"未还本书：{self.unreturned_book_number}\n"
-                f"过期本书：{self.due_count}"))
+        print ("借书号：{}\n".format(self.reader_id)+
+                "姓名：{}\n".format(self.name)+
+                "性别：{}\n".format(self.gender)+
+                "单位：{}\n".format(self.unit)+
+                "借书权限：{}\n".format(self.access)+
+                "借书额度：{}\n".format(self.quota)+
+                "未还本书：{}\n".format(self.unreturned_book_number)+
+                "过期本书：{}".format(self.due_count))
         record = self.reader_history.copy()
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "action", "isbn", "title"]]
@@ -143,7 +143,7 @@ class Reader():
             print (Fore.RED + "【借书失败：读者超过借书额度！】")
             return False
         if self.due_count > 0:
-            border2 = "-" * 100
+            border2 = "-" * 80
             print (border2)
             print (Fore.RED + "【借书失败：读者有过期书籍，请还书后再借！】")
             temp = self.due_record.copy()
@@ -230,13 +230,13 @@ class Book():
         return result
 
     def print_info(self, limit=None):
-        print ((f"ISBN：{self.isbn}\n"
-                f"标题：{self.title}\n"
-                f"作者：{self.author}\n"
-                f"出版社：{self.publisher}\n"
-                f"位置：【{self.location}】\n"
-                f"馆藏本书：{self.total_number}\n"
-                f"剩余本书：{self.avaliable_number}"))
+        print ("ISBN：{}\n".format(self.isbn)+
+                "标题：{}\n".format(self.title)+
+                "作者：{}\n".format(self.author)+
+                "出版社：{}\n".format(self.publisher)+
+                "位置：【{}】\n".format(self.location)+
+                "馆藏本书：{}\n".format(self.total_number)+
+                "剩余本书：{}".format(self.avaliable_number))
         record = self.book_history.copy()
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "unit", "reader_name", "reader_id", "action"]]
@@ -350,7 +350,7 @@ def initiallize():
     pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
 
     data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
-    logger.info(data)
+    # logger.info(data)
 
     # sanity check -- remove later: "status" not in data (when there's "status" but no item???)
     if "status" not in data:

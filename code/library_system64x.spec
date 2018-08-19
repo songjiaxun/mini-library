@@ -4,8 +4,8 @@ block_cipher = None
 
 
 a = Analysis(['library_system.py'],
-             pathex=['C:\\Users\\sjx19\\Desktop\\library\\mini-library\\code'],
-             binaries=[ ('DLLs\\x64\\*.dll', '.') ],
+             pathex=[],
+             binaries=[('DLLs\\x64\\*.dll', '.')],
              datas=[],
              hiddenimports=[],
              hookspath=[],

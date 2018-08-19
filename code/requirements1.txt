@@ -1,0 +1,9 @@
+setuptools
+xlrd
+openpyxl
+numpy
+lxml
+requests
+pyinstaller
+colorama
+subprocess

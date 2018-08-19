@@ -8,10 +8,12 @@ import data_manager as dm
 import sys
 import traceback
 from colorama import Fore, Back, Style
+import os
 
 ###############################
 # 系统设置
 ###############################
+os.system("mode con: cols=101 lines=100")
 
 logger = dm.logger
 
@@ -62,7 +64,7 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
     if reader_option:
         print (border2)
         reader_id = input_request("输入读者借书号，按0退出\n")
-        logger.info(f"输入读者借书号 - {reader_id}")
+        logger.info("输入读者借书号 - {}".format(reader_id))
         while not reader_to_obj(reader_id) and reader_id != "0":
             reader_id = input_request("读者借书号不存在。输入读者借书号，按0退出\n")
         if reader_id != "0":
@@ -74,7 +76,7 @@ def retrieve_reader_book(reader_option, book_option, limit=5):
     if book_option:
         print (border2)
         isbn = input_request("输入isbn号，按0退出\n")
-        logger.info(f"输入isbn号 - {isbn}")
+        logger.info("输入isbn号 - {}".format(isbn))
         while not book_to_obj(isbn) and isbn != "0":
             isbn = input_request("isbn不存在。输入isbn，按0退出\n")
         if isbn != "0":
@@ -140,7 +142,7 @@ def book_info_entry_single(isbn):
     spider_names = ["国图1", "国图2", "豆瓣"]
     # 从三个数据源依次获得数据
     for spider, name in zip(spider_functions, spider_names):
-        logger.info(f"从{name}获取书籍信息 - {isbn}")
+        logger.info("从{}获取书籍信息 - {}".format(name, isbn))
         status, book_info = spider(isbn, data, 5)
         if status:
             book_info["status"] = True
@@ -214,7 +216,7 @@ def reader_id_generater():
     groups = readers_df.groupby("unit")
     for unit, group in groups:
         if unit in ["教师", "老师"]:
-            readers_df.iloc[group.index,0] = [f"{teacher_id:04d}" 
+            readers_df.iloc[group.index,0] = ["{:04d}".format(teacher_id) 
                                                 for teacher_id in range(1, group.index.shape[0]+1)]
         else:
             grade_id = grade.get(unit[0], None)
@@ -224,7 +226,7 @@ def reader_id_generater():
                     if class_name in unit[1:]:
                         class_id = class_num[class_name]
                         break
-                readers_df.iloc[group.index,0] = [f"{grade_id}{class_id}{student_id:02d}" 
+                readers_df.iloc[group.index,0] = ["{}{}{:02d}".format(grade_id, class_id, student_id) 
                                                     for student_id in range(1, group.index.shape[0]+1)]
     dm.update_excel_library()
 
@@ -409,12 +411,16 @@ def admin(password_admin):
                                             "\n退出请按【0】\n"))
                 if request == "1":
                     reader.reader_access_revise("开通")
+                    print (border2)
                     reader.print_info(5)
-                    input (Fore.GREEN + "【读者权限修改成功！请按回车键返回。】")
+                    print (Fore.GREEN + "【读者权限修改成功！】")
+                    input ("请按回车键返回。")
                 elif request == "2":
                     reader.reader_access_revise("暂停")
+                    print (border2)
                     reader.print_info(5)
-                    input (Fore.GREEN + "【读者权限修改成功！请按回车键返回。】")
+                    print (Fore.GREEN + "【读者权限修改成功！】")
+                    input ("请按回车键返回。")
 
         elif choice == "5":
             logger.info("设置还书期限")
@@ -449,6 +455,7 @@ def admin(password_admin):
             logger.info("查看统计信息")
             print (border1)
             info_summary()
+            input("请按回车键返回。")
 
         elif choice == "8":
             logger.info("查询书目完整信息")
@@ -486,7 +493,7 @@ def main(meta_data):
     supposed_return_days_teachers = meta_data["teacher_days"].item()
 
     print (border1)
-    print (f"欢迎进入{institution}图书馆管理系统！")
+    print ("欢迎进入{}图书馆管理系统！".format(institution))
     print (border1)
 
     password = getpass.getpass(prompt="请输入密码！退出请按【0】\n密码:")
@@ -501,8 +508,8 @@ def main(meta_data):
     print (border2)
     
     book_number_unique, book_number, reader_number = summary()
-    print (f"图书馆现存图书【{book_number_unique}】种，共计图书【{book_number}】册，注册读者【{reader_number}】人。")
-    print (f"学生借书期限【{supposed_return_days_students}】天，教师借书期限【{supposed_return_days_teachers}】天。")
+    print ("图书馆现存图书【{}】种，共计图书【{}】册，注册读者【{}】人。".format(book_number_unique, book_number, reader_number))
+    print ("学生借书期限【{}】天，教师借书期限【{}】天。".format(supposed_return_days_students, supposed_return_days_teachers))
     
     instruction = ( "\n请按指示进行相关操作："
                     "\n借书请按【1】"
