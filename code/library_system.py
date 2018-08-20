@@ -9,14 +9,27 @@ from spider import *
 import data_manager as dm
 import sys
 import traceback
-from colorama import Fore, Back, Style
 import os
+from colorama import Fore, Back, Style
 
 ###############################
 # 系统设置
 ###############################
-os.system("mode con: cols=101 lines=40")
 
+# 调整窗口大小，buffer，标题
+from ctypes import windll, byref, c_bool, c_wchar_p, wintypes
+STDOUT = -12
+hdl = windll.kernel32.GetStdHandle(STDOUT)
+
+rect = wintypes.SMALL_RECT(0, 0, 100, 40) # (left, top, right, bottom)
+windll.kernel32.SetConsoleWindowInfo(hdl, c_bool(True), byref(rect))
+
+bufsize = wintypes._COORD(101, 300) # rows, columns
+windll.kernel32.SetConsoleScreenBufferSize(hdl, bufsize)
+
+windll.kernel32.SetConsoleTitleW(c_wchar_p("图书馆管理系统"))
+
+# 日志 
 logger = dm.logger
 
 # 中文对齐
