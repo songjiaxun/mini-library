@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import deque
 from datetime import datetime
 import numpy as np
@@ -36,7 +38,7 @@ def _create_logger(logger_name):
     logger.addHandler(fh)
     return logger
 
-logger = _create_logger("mini-library")
+logger = _create_logger("library")
 
 ###############################
 # 读者和书籍类

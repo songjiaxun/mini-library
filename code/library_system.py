@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from collections import deque
 from datetime import datetime
 import getpass # 输入密码
@@ -13,7 +15,7 @@ import os
 ###############################
 # 系统设置
 ###############################
-os.system("mode con: cols=101 lines=100")
+os.system("mode con: cols=101 lines=40")
 
 logger = dm.logger
 
