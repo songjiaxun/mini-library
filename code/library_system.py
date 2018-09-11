@@ -652,22 +652,31 @@ def info_summary():
         due_reader = pd.DataFrame()
     
     print (Fore.GREEN + "最受欢迎的20本图书：")
-    print (popular_book)
+    if not popular_book.empty:
+        print (popular_book)
+    else:
+        print ("暂无借阅记录。\n")
     print (border2)
+
     print (Fore.GREEN + "最勤奋的20位读者：")
-    print (good_reader)
+    if not good_reader.empty:
+        print (good_reader)
+    else:
+        print ("暂无借阅记录。\n")
+
     print (border2)
     print (Fore.RED + "过期未还书的读者：")
     if not due_reader.empty:
         print (due_reader)
     else:
-        print ("无过期未还书的读者\n")
+        print ("无过期未还书的读者。\n")
     print (border2)
+
     print (Fore.YELLOW + "今日借阅记录（查看详细借阅记录请打开【借阅记录.xlsx】文件查询）：")
     if not today.empty:
         print (today)
     else:
-        print ("无今日借阅记录\n")
+        print ("无今日借阅记录。\n")
 
 ###############################
 # 管理员目录
