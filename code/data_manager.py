@@ -137,7 +137,7 @@ class Reader():
         global history_df
         history_df = pd.concat([record, history_df], ignore_index=True)
         
-    def check_in(self, book):
+    def check_out(self, book):
         if self.access != "开通":
             print (Fore.RED + "【借书失败：读者没有开通借书权限！】")
             return False
@@ -343,61 +343,48 @@ def sql_to_excel():
     writer_library.save()
     writer_history.save()
 
-
 def initiallize():
     """
     初始化
     """
     conn = get_connection()
-    pd.DataFrame({}).to_sql('Meta', conn, if_exists='append') # making sure there's the table - will be revised later
+    data = pd.read_sql("SELECT * FROM Meta", conn)
 
-    data = pd.DataFrame(pd.read_sql("SELECT * FROM Meta", conn))
-    # logger.info(data)
-
-    # sanity check -- remove later: "status" not in data (when there's "status" but no item???)
-    if "status" not in data:
-        data["status"] = ["1"]
-    elif data["status"].item() is None:
-        print ("data['status'].item() is None")
-
-    if data["status"].item() == "0":
-        data["status"] = "1"
+    if data["status"].item() == 0:
+        data["status"] = 1
         print ("【软件初始化】，请按提示输入相应内容！")
-        data["institution"] = input("【学校/机构名称】：")
-        data["password"] = input("【登陆密码】：")
-        data["administrator"] = input("【管理员密码】：")
+        data["institution"] = input("设置【学校/机构名称】：")
+        data["password"] = input("设置【登陆密码】：")
+        data["administrator"] = input("设置【管理员密码】：")
         # use default values first
         data["student_days"] = 15
         data["teacher_days"] = 30
-        data.to_sql("Meta", conn, if_exists="replace", index=False) # why False?
+        data.to_sql("Meta", conn, if_exists="replace", index=False)
     return data
 
+# def start():
+logger.info("=" * 80)
 
-def start():
-    logger.info("=" * 80)
+global meta_data, readers_df, books_df, history_df
+meta_data, readers_df, books_df, history_df = (None, None, None, None)
 
-    global meta_data, readers_df, books_df, history_df
-    meta_data, readers_df, books_df, history_df = (None, None, None, None)
-    
-    try:
-        logger.info("载入元数据")
-        meta_data = initiallize()
-    except:
-        logger.error("元数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("Bugs here. Contact the collaborator") # delete this later
-    
-    try:
-        logger.info("载入读者、书籍数据")
-        readers_df, books_df = load_data_libaray()
-    except:
-        logger.error("读者、书籍据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
-    
-    try:
-        logger.info("载入借阅数据")
-        history_df = load_data_history()
-    except:
-        logger.error("借阅数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("请确认【借阅记录.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
+try:
+    logger.info("载入元数据")
+    meta_data = initiallize()
+except:
+    logger.error("元数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
+    print ("Bugs here. Contact the collaborator") # delete this later
 
-    return meta_data, readers_df, books_df, history_df
+try:
+    logger.info("载入读者、书籍数据")
+    readers_df, books_df = load_data_libaray()
+except:
+    logger.error("读者、书籍据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
+    print ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
+
+try:
+    logger.info("载入借阅数据")
+    history_df = load_data_history()
+except:
+    logger.error("借阅数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
+    print ("请确认【借阅记录.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
