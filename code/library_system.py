@@ -23,10 +23,10 @@ from ctypes import windll, byref, c_bool, c_wchar_p, wintypes
 STDOUT = -12
 hdl = windll.kernel32.GetStdHandle(STDOUT)
 
-bufsize = wintypes._COORD(101, 300) # rows, columns
+bufsize = wintypes._COORD(121, 300) # rows, columns
 windll.kernel32.SetConsoleScreenBufferSize(hdl, bufsize)
 
-rect = wintypes.SMALL_RECT(0, 0, 100, 40) # (left, top, right, bottom)
+rect = wintypes.SMALL_RECT(0, 0, 120, 40) # (left, top, right, bottom)
 windll.kernel32.SetConsoleWindowInfo(hdl, c_bool(True), byref(rect))
 
 windll.kernel32.SetConsoleTitleW(c_wchar_p("图书馆管理系统"))
@@ -35,12 +35,12 @@ windll.kernel32.SetConsoleTitleW(c_wchar_p("图书馆管理系统"))
 pd.set_option('display.unicode.east_asian_width',True)
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.expand_frame_repr',False)
-pd.set_option('display.width',100)
+pd.set_option('display.width',120)
 pd.set_option('display.max_colwidth',50)
 pd.set_option('display.max_row',500)
 
-border1 = "=" * 100
-border2 = "-" * 100
+border1 = "=" * 120
+border2 = "-" * 120
 
 readers_dic = {}
 books_dic = {}
@@ -324,19 +324,17 @@ def update_excel_library():
     readers_copy.columns = readers_schema
     books_copy.columns = books_schema
 
-    writer_library = pd.ExcelWriter(os.path.join(os.getcwd(), "图书馆信息.xlsx"))
-    readers_copy.to_excel(writer_library, sheet_name="读者", index=False)
-    books_copy.to_excel(writer_library, sheet_name="书籍", index=False)
-    writer_library.save()
+    with pd.ExcelWriter(os.path.join(os.getcwd(), "图书馆信息.xlsx")) as writer_library:
+        readers_copy.to_excel(writer_library, sheet_name="读者", index=False)
+        books_copy.to_excel(writer_library, sheet_name="书籍", index=False)
 
 def update_excel_history():
     history_copy = history_df.copy(deep=True)
     history_schema = ["时间", "单位", "姓名", "借书号", "动作", "ISBN", "书名", "书籍位置", "还书期限"]
     history_copy.columns = history_schema
 
-    writer_history = pd.ExcelWriter(os.path.join(os.getcwd(), "借阅记录.xlsx"))
-    history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
-    writer_history.save()
+    with pd.ExcelWriter(os.path.join(os.getcwd(), "借阅记录.xlsx")) as writer_history:
+        history_copy.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
 def sql_to_excel():
     conn = get_connection()
@@ -361,15 +359,12 @@ def sql_to_excel():
     if not os.path.isdir(backup_path):
         os.makedirs(backup_path)
 
-    writer_library = pd.ExcelWriter(os.path.join(backup_path, "图书馆信息.xlsx"))
-    readers_df.to_excel(writer_library, sheet_name="读者", index=False)
-    books_df.to_excel(writer_library, sheet_name="书籍", index=False)
+    with pd.ExcelWriter(os.path.join(backup_path, "图书馆信息.xlsx")) as writer_library:
+        readers_df.to_excel(writer_library, sheet_name="读者", index=False)
+        books_df.to_excel(writer_library, sheet_name="书籍", index=False)
 
-    writer_history = pd.ExcelWriter(os.path.join(backup_path, "借阅记录.xlsx"))
-    history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
-
-    writer_library.save()
-    writer_history.save()
+    with pd.ExcelWriter(os.path.join(backup_path, "借阅记录.xlsx")) as writer_history:
+        history_df.to_excel(writer_history, sheet_name="借阅记录", index=False)
 
 def initiallize():
     """
@@ -648,6 +643,7 @@ def info_summary():
         due_reader = due_reader[due_reader["return_date"] < datetime.now()]
         due_reader = due_reader[["date_time", "reader_id", "unit", "reader_name", "title", "isbn", "return_date"]]
         due_reader.columns = ["借书时间", "借书号", "单位", "读者", "书籍", "ISBN", "应还书时间"]
+        due_reader.index = np.arange(1, len(due_reader)+1)
     else:
         due_reader = pd.DataFrame()
     
