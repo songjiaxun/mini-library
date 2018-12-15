@@ -36,7 +36,7 @@ pd.set_option('display.unicode.east_asian_width',True)
 pd.set_option('display.unicode.ambiguous_as_wide', True)
 pd.set_option('display.expand_frame_repr',False)
 pd.set_option('display.width',120)
-pd.set_option('display.max_colwidth',50)
+pd.set_option('display.max_colwidth',20)
 pd.set_option('display.max_row',500)
 
 border1 = "=" * 120
@@ -85,11 +85,11 @@ class Reader():
     def update_data(self):
         # 借阅记录
         self.reader_history = self.get_history()
-        # 一共借阅过的本书
+        # 一共借阅过的本数
         self.checked_book_number = self.reader_history[self.reader_history["action"]=="借书"].shape[0]
         # 未还书籍列表
         self._unreturned_record = self._get_unreturned_record()
-        # 借出未还的本书
+        # 借出未还的本数
         self.unreturned_book_number = self._unreturned_record.shape[0]
         # 过期未还记录
         self.due_record = self.cal_due_record()
@@ -129,8 +129,8 @@ class Reader():
                 "单位：{}\n".format(self.unit)+
                 "借书权限：{}\n".format(self.access)+
                 "借书额度：{}\n".format(self.quota)+
-                "未还本书：{}\n".format(self.unreturned_book_number)+
-                "过期本书：{}".format(self.due_count))
+                "未还本数：{}\n".format(self.unreturned_book_number)+
+                "过期本数：{}".format(self.due_count))
         record = self.reader_history.copy()
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "action", "isbn", "title"]]
@@ -187,7 +187,7 @@ class Reader():
         if not book:
             return False
         if book.avaliable_number <= 0:
-            print (Fore.RED + "【借书失败：馆藏本书不足！】")
+            print (Fore.RED + "【借书失败：馆藏本数不足！】")
             return False
 
         self.insert_hitory_record(self, book, "借书")
@@ -278,7 +278,7 @@ class Book():
         self.book_history = self.get_history()
         # 一共借阅过的次数
         self.checked_book_number = self.book_history[self.book_history["action"]=="借书"].shape[0]
-        # 剩余在架的本书
+        # 剩余在架的本数
         self.avaliable_number = self.cal_avaliable_number()
 
     def get_history(self):
@@ -300,8 +300,8 @@ class Book():
                 "作者：{}\n".format(self.author)+
                 "出版社：{}\n".format(self.publisher)+
                 "位置：【{}】\n".format(self.location)+
-                "馆藏本书：{}\n".format(self.total_number)+
-                "剩余本书：{}".format(self.avaliable_number))
+                "馆藏本数：{}\n".format(self.total_number)+
+                "剩余本数：{}".format(self.avaliable_number))
         record = self.book_history.copy()
         record.index = np.arange(1, len(record)+1)
         record = record.loc[:limit, ["date_time", "unit", "reader_name", "reader_id", "action"]]
@@ -538,9 +538,6 @@ def book_info_entry_single(isbn):
 
     return book_info
 
-def book_info_entry_batch():
-    input ("若想批量录入图书请联系作者：jiaxun.song@outlook.com，谢谢！\n请按回车键返回。")
-
 ###############################
 # 通用功能
 ###############################
@@ -555,7 +552,7 @@ def input_request(instruction):
 
 def summary():
     """
-    统计馆藏本书、注册读者数等信息
+    统计馆藏本数、注册读者数等信息
     """
     book_number_unique = len(books_df)
     book_number = books_df["total_number"].sum()
@@ -565,6 +562,9 @@ def summary():
 ###############################
 # 管理员功能
 ###############################
+def reset_history():
+    input ("此功能还在开发中，谢谢！\n请按回车键返回。")
+
 def reader_id_generater():
     """
     自动生成借书号
@@ -599,7 +599,8 @@ def reader_id_generater():
             }
     groups = readers_df.groupby("unit")
     for unit, group in groups:
-        if unit in ["教师", "老师"]:
+        unit = unit.strip()
+        if unit in set(["教师", "老师"]):
             readers_df.iloc[group.index,0] = ["{:04d}".format(teacher_id) 
                                                 for teacher_id in range(1, group.index.shape[0]+1)]
         else:
@@ -629,6 +630,7 @@ def info_summary():
     today = record.loc[:, ["date_time", "reader_id", "unit", "reader_name", "action", "title"]]
     today = today[today["date_time"] >= pd.Timestamp(datetime.today().date())]
     today.columns = ["时间", "借书号", "单位", "读者", "动作", "书籍"]
+    today = today.head(15)
 
     # 最受欢迎的20本图书
     popular_book = (record[record["action"]=="借书"].groupby(["isbn", "title", "location"])["reader_id"]
@@ -698,7 +700,7 @@ def info_summary():
         print ("无过期未还书的读者。\n")
     print (border2)
 
-    print (Fore.YELLOW + "今日借阅记录（查看详细借阅记录请打开【借阅记录.xlsx】文件查询）：")
+    print (Fore.YELLOW + "今日最近15条借阅记录（查看详细借阅记录请打开【借阅记录.xlsx】文件查询）：")
     if not today.empty:
         print (today)
     else:
@@ -722,7 +724,7 @@ def admin(password_admin):
         return
     instruction = ( "\n【管理员】请按指示进行相关操作："
                     "\n单本录入图书请按【1】"
-                    "\n批量录入图书请按【2】"
+                    "\n新学年重置借阅记录请按【2】"
                     "\n自动生成借书号请按【3】"
                     "\n修改读者权限请按【4】"
                     "\n读者丢失书籍请按【5】"
@@ -779,13 +781,13 @@ def admin(password_admin):
                 isbn = input_request("输入ISBN，按0退出\n")
 
         elif choice == "2":
-            # 逻辑比较难实现，暂时搁置
-            logger.info("批量录入图书")
+            # 新学年重置借阅记录
+            logger.info("新学年重置借阅记录")
             print (border1)
-            print (Fore.YELLOW + "【当前操作：批量录入图书】")
+            print (Fore.YELLOW + "【当前操作：新学年重置借阅记录】")
             print (border1)
             update_sql()
-            book_info_entry_batch()
+            reset_history()
 
         elif choice == "3":
             logger.info("自动生成借书号")
@@ -1017,21 +1019,21 @@ def load_data():
         meta_data = initiallize()
     except:
         logger.error("元数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("请确认【library.db】与该软件置于同一目录下！")
+        input ("请确认【library.db】与该软件置于同一目录下！")
 
     try:
         logger.info("载入读者、书籍数据")
         readers_df, books_df = load_data_libaray()
     except:
         logger.error("读者、书籍据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
+        input ("请确认【图书馆信息.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
 
     try:
         logger.info("载入借阅数据")
         history_df = load_data_history()
     except:
         logger.error("借阅数据载入错误\n" + "".join(traceback.format_exception(*sys.exc_info())))
-        print ("请确认【借阅记录.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
+        input ("请确认【借阅记录.xlsx】文件保持关闭状态，并与该软件置于同一目录下！")
 
     return meta_data, readers_df, books_df, history_df
 
