@@ -11,6 +11,8 @@ import logging
 import sys
 import traceback
 import os
+import shutil
+import platform
 from colorama import Fore, Back, Style, init
 init(autoreset=True)
 
@@ -318,6 +320,21 @@ class Book():
 ###############################
 # 载入数据
 ###############################
+def delete_temp_files():
+    windows_version = platform.platform()
+    logger.info("系统版本：" + windows_version)
+    if windows_version.lower().startswith("windows-xp"):
+        base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
+    else:
+        base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
+    logger.info("临时文件夹根目录：" + base_path)
+    folders = list(filter(lambda folder : folder.startswith("_MEI"), os.listdir(base_path)))
+    folders.sort(key=lambda folder: os.path.getmtime(os.path.join(base_path, folder)))
+    for folder in folders[:-1]:
+        if folder.startswith("_MEI"):
+            logger.info("删除临时文件夹" + folder)
+            shutil.rmtree(os.path.join(base_path, folder))
+
 def load_data_libaray():
     readers_schema = ["reader_id", "name", "gender", "unit", "access", "quota"]
     books_schema = ["isbn", "title", "author", "publisher", "publish_date", "page_number", 
@@ -1042,6 +1059,13 @@ if __name__ == '__main__':
     global logger
     logger = _create_logger("library")
     logger.info("="*80)
+
+    # 删除临时文件
+    try:
+        logger.info("删除临时文件")
+        delete_temp_files()
+    except:
+        logger.error("删除临时文件错误\n" + "".join(traceback.format_exception(*sys.exc_info())))        
 
     global meta_data, readers_df, books_df, history_df
     meta_data, readers_df, books_df, history_df = load_data()
