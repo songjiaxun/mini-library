@@ -798,7 +798,6 @@ def admin(password_admin):
                 isbn = input_request("输入ISBN，按0退出\n")
 
         elif choice == "2":
-            # 新学年重置借阅记录
             logger.info("新学年重置借阅记录")
             print (border1)
             print (Fore.YELLOW + "【当前操作：新学年重置借阅记录】")
@@ -1017,7 +1016,8 @@ def main(meta_data):
             print (border2)
             print (("感谢使用此套图书管理系统！"
                     "\n软件作者：宋嘉勋、陈胜寒"
-                    "\n联系方式：E-mail: jiaxun.song@outlook.com | chenshenghan.17@fellow.tfchina.org"))
+                    "\n联系方式：E-mail: jiaxun.song@outlook.com"
+                    "\n如需寻求帮助，请在邮件标题中注明【图书馆软件问题】，在邮件正文中说明所遇到的问题，并将【library.log】、【借阅记录.xlsx】和【图书馆信息.xlsx】三个文件添加至附件一并发送，谢谢！"))
         
         else:
             logger.warn("代码错误")
