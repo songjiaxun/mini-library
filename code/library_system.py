@@ -11,7 +11,7 @@ import logging
 import sys
 import traceback
 import os
-import shutil
+from shutil import rmtree, copyfile
 import platform
 from colorama import Fore, Back, Style, init
 init(autoreset=True)
@@ -320,21 +320,6 @@ class Book():
 ###############################
 # 载入数据
 ###############################
-def delete_temp_files():
-    windows_version = platform.platform()
-    logger.info("系统版本：" + windows_version)
-    if windows_version.lower().startswith("windows-xp"):
-        base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
-    else:
-        base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
-    logger.info("临时文件夹根目录：" + base_path)
-    folders = list(filter(lambda folder : folder.startswith("_MEI"), os.listdir(base_path)))
-    folders.sort(key=lambda folder: os.path.getmtime(os.path.join(base_path, folder)))
-    for folder in folders[:-1]:
-        if folder.startswith("_MEI"):
-            logger.info("删除临时文件夹" + folder)
-            shutil.rmtree(os.path.join(base_path, folder))
-
 def load_data_libaray():
     readers_schema = ["reader_id", "name", "gender", "unit", "access", "quota"]
     books_schema = ["isbn", "title", "author", "publisher", "publish_date", "page_number", 
@@ -356,6 +341,29 @@ def load_data_history():
 ###############################
 # 交换数据、备份数据
 ###############################
+def delete_temp_files():
+    windows_version = platform.platform()
+    logger.info("系统版本：" + windows_version)
+    if windows_version.lower().startswith("windows-xp"):
+        base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
+    else:
+        base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
+    logger.info("临时文件夹根目录：" + base_path)
+    
+    # 备份Excel文件
+    for file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
+        target_file = base_path + "\{}_{}.xlsx".format(file.split(".")[0], datetime.now().strftime('%Y-%m-%d-%H'))
+        logger.info("备份文件：" + target_file)
+        copyfile(file, target_file)
+    
+    # 删除历史临时文件
+    folders = list(filter(lambda folder : folder.startswith("_MEI"), os.listdir(base_path)))
+    folders.sort(key=lambda folder: os.path.getmtime(os.path.join(base_path, folder)))
+    for folder in folders[:-1]:
+        if folder.startswith("_MEI"):
+            logger.info("删除临时文件夹" + folder)
+            rmtree(os.path.join(base_path, folder))
+
 def get_connection(db_path='library.db'):
     return sql.connect(db_path, timeout=10)
 
@@ -580,7 +588,9 @@ def summary():
 # 管理员功能
 ###############################
 def reset_history():
-    input ("此功能还在开发中，谢谢！\n请按回车键返回。")
+    global history_df
+    history_df.drop(history_df.index, inplace=True)
+    update_excel_history()
 
 def reader_id_generater():
     """
@@ -611,8 +621,7 @@ def reader_id_generater():
             "六": "6",
             "七": "7",
             "八": "8",
-            "九": "9", 
-            "十": "10"            
+            "九": "9"           
             }
     groups = readers_df.groupby("unit")
     for unit, group in groups:
@@ -741,7 +750,7 @@ def admin(password_admin):
         return
     instruction = ( "\n【管理员】请按指示进行相关操作："
                     "\n单本录入图书请按【1】"
-                    "\n新学年重置借阅记录请按【2】"
+                    "\n新学年重置读者信息请按【2】"
                     "\n自动生成借书号请按【3】"
                     "\n修改读者权限请按【4】"
                     "\n读者丢失书籍请按【5】"
@@ -798,12 +807,27 @@ def admin(password_admin):
                 isbn = input_request("输入ISBN，按0退出\n")
 
         elif choice == "2":
-            logger.info("新学年重置借阅记录")
+            logger.info("新学年重置读者信息")
             print (border1)
-            print (Fore.YELLOW + "【当前操作：新学年重置借阅记录】")
+            print (Fore.YELLOW + "【当前操作：新学年重置读者信息】")
             print (border1)
             update_sql()
-            reset_history()
+            print (Fore.RED + "！！请认真阅读以下说明！！")
+            confirm = "999"
+            while confirm != "1" and confirm != "0":
+                confirm = input_request(("如果您在使用该软件默认的读者借书号命名规则，那么在每一学年初，由于班级年级变更，"
+                                         "\n需要重置读者信息方能使用。如果您在使用其他借书号命名规则，则【无需】使用此功能。"
+                                         "\n该操作将【删除】所有借阅记录，并且【自动生成借书号】，但【不会】影响书籍信息。"
+                                         "\n请确认【已经完成】以下操作，否则请按【0】退出："
+                                         "\n  （1）更新【图书馆信息.xlsx】中的读者信息，如添加新读者，更新班级信息等。"
+                                         "\n  （2）如有需要，手动备份【借阅记录.xlsx】文件，即复制该文件至其它位置。"
+                                         "\n  （3）完成以上两步之后，重新启动软件，再次进入该功能，按【1】完成操作。"
+                                         "\n确认操作请按【1】，取消请按【0】"))
+            if confirm == "1":
+                reset_history()
+                reader_id_generater()
+                print (Fore.GREEN + "【新学年重置软件生成!】")
+                return True
 
         elif choice == "3":
             logger.info("自动生成借书号")
@@ -862,7 +886,7 @@ def admin(password_admin):
                 confirm = input_request(("该操作将设置读者借书期限，但【不会】影响书籍信息、读者信息和借阅记录。"
                                         "\n确认请按【1】，取消请按【0】"))
             if confirm == "1":
-                meta_data["student_days"] = student_days # TODO 
+                meta_data["student_days"] = student_days
                 meta_data["teacher_days"] = teacher_days
                 meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print (Fore.GREEN + "【读者借书期限设置成功！】")
@@ -1056,13 +1080,14 @@ def load_data():
 
 if __name__ == '__main__':
     # 日志
-    global logger
+    global logger, VERSION
+    VERSION = "20181228"
     logger = _create_logger("library")
     logger.info("="*80)
+    logger.info("软件版本：" + VERSION)
 
     # 删除临时文件
     try:
-        logger.info("删除临时文件")
         delete_temp_files()
     except:
         logger.error("删除临时文件错误\n" + "".join(traceback.format_exception(*sys.exc_info())))        
