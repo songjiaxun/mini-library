@@ -138,7 +138,7 @@ class Reader():
         record = record.loc[:limit, ["date_time", "action", "isbn", "title"]]
         record.columns = ["时间", "动作", "ISBN", "标题"]
         if not len(record):
-            print (Fore.RED + "【该读者暂无借阅记录。】")
+            print (Fore.YELLOW + "【该读者暂无借阅记录。】")
         elif not limit:
             print (record)
         else:
@@ -172,7 +172,7 @@ class Reader():
             print (Fore.RED + "【借书失败：读者没有开通借书权限！】")
             return False
         if self.unreturned_book_number >= self.quota:
-            print (Fore.RED + "【借书失败：读者超过借书额度！】")
+            print (Fore.RED + "【借书失败：读者借阅书目数量超过借书额度！】")
             return False
         if self.due_count > 0:
             border2 = "-" * 80
@@ -189,7 +189,7 @@ class Reader():
         if not book:
             return False
         if book.avaliable_number <= 0:
-            print (Fore.RED + "【借书失败：馆藏本数不足！】")
+            print (Fore.RED + "【借书失败：该书馆藏本数不足！】")
             return False
 
         self.insert_hitory_record(self, book, "借书")
@@ -247,6 +247,7 @@ class Reader():
         book = book_to_obj(isbn)
         self.insert_hitory_record(self, book, "丢书")
         self.update_data()
+        book.loose_book()
         book.update_data()
         self.reader_access_revise("丢书")
         update_sql()
@@ -289,12 +290,19 @@ class Book():
     def cal_avaliable_number(self):
         record = self.book_history.copy()
         record = record.sort_values("date_time")
-        action_dic = {"借书" : -1, "还书" : 1, "丢书" : 0}
+        action_dic = {"借书" : -1, "还书" : 1, "丢书" : 1}
         result = self.total_number
         actions = record["action"]
         for action in actions:
             result += action_dic[action]
         return result
+
+    def loose_book(self):
+        self.total_number -= 1
+        index = books_df[books_df["isbn"]==self.isbn].index
+        books_df.loc[index, "total_number"] = self.total_number
+        update_sql()
+        update_excel_library()
 
     def print_info(self, limit=None):
         print ("ISBN：{}\n".format(self.isbn)+
@@ -309,7 +317,7 @@ class Book():
         record = record.loc[:limit, ["date_time", "unit", "reader_name", "reader_id", "action"]]
         record.columns = ["时间", "单位", "读者ID", "读者", "动作"]
         if not len(record):
-            print (Fore.RED + "【本书暂无借阅记录。】")
+            print (Fore.YELLOW + "【本书暂无借阅记录。】")
         elif not limit:
             print (record)
         else:
@@ -343,7 +351,8 @@ def load_data_history():
 ###############################
 def delete_temp_files():
     windows_version = platform.platform()
-    logger.info("系统版本：" + windows_version)
+    bits = platform.architecture()[0]
+    logger.info("系统版本：" + windows_version + ", " + bits)
     if windows_version.lower().startswith("windows-xp"):
         base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
     else:
@@ -476,20 +485,20 @@ def retrieve_reader_book(option="reader", limit=5):
 
     if option == "reader":
         print (border2)
-        reader_id = input_request("输入读者借书号，按0退出\n")
+        reader_id = input_request("输入读者借书号，按0退出：")
         logger.info("输入读者借书号 - {}".format(reader_id))
         while not reader_to_obj(reader_id) and reader_id != "0":
-            reader_id = input_request("读者借书号不存在。输入读者借书号，按0退出\n")
+            reader_id = input_request("读者借书号不存在。\n输入读者借书号，按0退出：")
         if reader_id != "0":
             obj = reader_to_obj(reader_id)
             obj.print_info(limit)
 
     if option == "book":
         print (border2)
-        isbn = input_request("输入isbn号，按0退出\n")
-        logger.info("输入isbn号 - {}".format(isbn))
+        isbn = input_request("输入ISBN号，按0退出：")
+        logger.info("输入ISBN号 - {}".format(isbn))
         while not book_to_obj(isbn) and isbn != "0":
-            isbn = input_request("isbn不存在。输入isbn，按0退出\n")
+            isbn = input_request("ISBN不存在。\n输入ISBN号，按0退出：")
         if isbn != "0":
             obj = book_to_obj(isbn)
             obj.print_info(limit)
@@ -754,7 +763,7 @@ def admin(password_admin):
                     "\n自动生成借书号请按【3】"
                     "\n修改读者权限请按【4】"
                     "\n读者丢失书籍请按【5】"
-                    "\n设置还书期限请按【6】"
+                    "\n设置借书期限请按【6】"
                     "\n重置密码及登录信息请按【7】"
                     "\n查看统计信息请按【8】"
                     "\n查询书目完整信息请按【9】"
@@ -773,7 +782,7 @@ def admin(password_admin):
             # 备份数据
             update_sql()
             # 要求用户输入ISBN码，可以手动输入，也可以扫码枪输入
-            isbn = input_request("输入ISBN，按0退出\n")
+            isbn = input_request("输入ISBN，按0退出\nISBN：")
             while isbn != "0":
                 # 调用单本录入函数
                 book_info = book_info_entry_single(isbn)
@@ -804,7 +813,7 @@ def admin(password_admin):
                     # 更新内存中的object
                     book_to_obj(isbn, force=True).print_info()
                     print (border2)
-                isbn = input_request("输入ISBN，按0退出\n")
+                isbn = input_request("输入ISBN，按0退出\nISBN：")
 
         elif choice == "2":
             logger.info("新学年重置读者信息")
@@ -875,9 +884,9 @@ def admin(password_admin):
                 reader.loose_book()
 
         elif choice == "6":
-            logger.info("设置还书期限")
+            logger.info("设置借书期限")
             print (border1)
-            print (Fore.YELLOW + "【当前操作：设置还书期限】")
+            print (Fore.YELLOW + "【当前操作：设置借书期限】")
             print (border1)
             student_days = input("【学生】借书期限（天）：")
             teacher_days = input("【教师】借书期限（天）：")
@@ -1079,9 +1088,17 @@ def load_data():
     return meta_data, readers_df, books_df, history_df
 
 if __name__ == '__main__':
+    # 获得版本信息
+    if getattr( sys, 'frozen', False ) :
+            bundle_dir=sys._MEIPASS
+    else :
+            bundle_dir=os.path.dirname(os.path.abspath(__file__))
+    
+    with open(os.path.join(bundle_dir, "VERSION"), "r") as file:
+        VERSION = file.read()
+    
     # 日志
-    global logger, VERSION
-    VERSION = "20181228"
+    global logger    
     logger = _create_logger("library")
     logger.info("="*80)
     logger.info("软件版本：" + VERSION)
