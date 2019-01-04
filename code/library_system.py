@@ -911,7 +911,7 @@ def admin(password_admin):
                                         "\n确认请按【1】，取消请按【0】"))
             if confirm == "1":
                 print (border2)
-                meta_data["status"] = "0"
+                meta_data["status"] = 0
                 meta_data.to_sql("Meta", get_connection(), if_exists="replace", index=False)
                 print (Fore.GREEN + "【密码及登录信息重置成功!】")
                 return True
