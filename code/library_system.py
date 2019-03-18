@@ -350,6 +350,8 @@ def load_data_history():
 # 交换数据、备份数据
 ###############################
 def delete_temp_files_and_backup_files(bundle_dir):
+    print (bundle_dir)
+    print ("\\".join(bundle_dir.split("\\")[:-1]))
     windows_version = platform.platform()
     bits = platform.architecture()[0]
     logger.info("系统版本：" + windows_version + ", " + bits)
@@ -357,6 +359,7 @@ def delete_temp_files_and_backup_files(bundle_dir):
         base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
     else:
         base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
+    print (base_path)
     logger.info("临时文件夹根目录：" + base_path)
 
     # 删除历史临时文件
