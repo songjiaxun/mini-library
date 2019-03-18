@@ -349,7 +349,7 @@ def load_data_history():
 ###############################
 # 交换数据、备份数据
 ###############################
-def delete_temp_files():
+def delete_temp_files_and_backup_files(bundle_dir):
     windows_version = platform.platform()
     bits = platform.architecture()[0]
     logger.info("系统版本：" + windows_version + ", " + bits)
@@ -358,13 +358,7 @@ def delete_temp_files():
     else:
         base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
     logger.info("临时文件夹根目录：" + base_path)
-    
-    # 备份Excel文件
-    for file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
-        target_file = base_path + "\{}_{}.xlsx".format(file.split(".")[0], datetime.now().strftime('%Y-%m-%d-%H'))
-        logger.info("备份文件：" + target_file)
-        copyfile(file, target_file)
-    
+
     # 删除历史临时文件
     folders = list(filter(lambda folder : folder.startswith("_MEI"), os.listdir(base_path)))
     folders.sort(key=lambda folder: os.path.getmtime(os.path.join(base_path, folder)))
@@ -372,6 +366,16 @@ def delete_temp_files():
         if folder.startswith("_MEI"):
             logger.info("删除临时文件夹" + folder)
             rmtree(os.path.join(base_path, folder))
+    
+    # 如果软件所在目录没有所需的Excel文件，创建两个文件
+    if False:
+        pass
+    # 如果软件所在目录存在所需的Excel文件，备份Excel文件
+    else:
+        for file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
+            target_file = base_path + "\{}_{}.xlsx".format(file.split(".")[0], datetime.now().strftime('%Y-%m-%d-%H')) # 改变备份精度
+            logger.info("备份文件：" + target_file)
+            copyfile(file, target_file)
 
 def get_connection(db_path='library.db'):
     return sql.connect(db_path, timeout=10)
@@ -1105,7 +1109,7 @@ if __name__ == '__main__':
 
     # 删除临时文件
     try:
-        delete_temp_files()
+        delete_temp_files_and_backup_files(bundle_dir)
     except:
         logger.error("删除临时文件错误\n" + "".join(traceback.format_exception(*sys.exc_info())))        
 
