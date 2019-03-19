@@ -286,6 +286,9 @@ class Book():
         self.total_number = book_info["total_number"]
         self.location = book_info["location"]
         self.update_data()
+        self.book_history = None
+        self.checked_book_number = None
+        self.avaliable_number = None
 
     def update_data(self):
         # 借阅记录
@@ -380,10 +383,6 @@ def prepare_files():
     logger.info("系统版本：" + windows_version + ", " + bits)
 
     base_path = "\\".join(bundle_dir.split("\\")[:-1])
-    # if windows_version.lower().startswith("windows-xp"):
-    #     base_path = "{}\Local Settings\Temp".format(os.environ['USERPROFILE'])
-    # else:
-    #     base_path = "{}\AppData\Local\Temp".format(os.environ['USERPROFILE'])
 
     logger.info("临时文件夹根目录：" + base_path)
 
@@ -409,7 +408,7 @@ def prepare_files():
     if getattr(sys, 'frozen', False):
         for source_file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
             target_file = base_path + "\{}_{}.xlsx".format(source_file.split(".")[0],
-                                                           datetime.now().strftime('%Y-%m-%d-%H-%M'))
+                                                           datetime.now().strftime('%Y-%m-%d-%H-%M-%s'))
             logger.info("备份文件：" + target_file)
             copyfile(source_file, target_file)
 
@@ -634,7 +633,7 @@ def input_request(instruction):
     user_input = input(instruction)
     while user_input == "":
         user_input = input(instruction)
-    return user_input
+    return user_input.strip()
 
 
 def summary():
