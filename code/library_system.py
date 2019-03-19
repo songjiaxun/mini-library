@@ -410,7 +410,7 @@ def prepare_files():
     if getattr(sys, 'frozen', False):
         for source_file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
             target_file = base_path + "\{}_{}.xlsx".format(source_file.split(".")[0],
-                                                           datetime.now().strftime('%Y-%m-%d-%H-%M-%s'))
+                                                           datetime.now().strftime('%Y-%m-%d-%H-%M-%S'))
             logger.info("备份文件：" + target_file)
             copyfile(source_file, target_file)
 
