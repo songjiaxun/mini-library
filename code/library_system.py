@@ -402,7 +402,7 @@ def prepare_files():
         copyfile(source_file, "图书馆信息.xlsx")
 
     elif not os.path.exists("借阅记录.xlsx"):
-        source_file = bundle_dir + "\图借阅记录.xlsx"
+        source_file = bundle_dir + "\借阅记录.xlsx"
         logger.info("创建文件：借阅记录.xlsx")
         copyfile(source_file, "借阅记录.xlsx")
 
@@ -413,6 +413,12 @@ def prepare_files():
                                                            datetime.now().strftime('%Y-%m-%d-%H-%M'))
             logger.info("备份文件：" + target_file)
             copyfile(source_file, target_file)
+
+    # 如果软件所在目录没有所需的Excel文件，创建两个文件
+    if not os.path.exists("library.db"):
+        source_file = bundle_dir + "\library.db"
+        logger.info("创建文件：图书馆信息.xlsx")
+        copyfile(source_file, "图书馆信息.xlsx")    
 
 
 def get_connection(db_path='library.db'):
