@@ -395,30 +395,23 @@ def prepare_files():
             logger.info("删除临时文件夹" + folder)
             rmtree(os.path.join(base_path, folder))
 
-    # 如果软件所在目录没有所需的Excel文件，创建两个文件
-    if not os.path.exists("图书馆信息.xlsx"):
-        source_file = bundle_dir + "\图书馆信息.xlsx"
-        logger.info("创建文件：图书馆信息.xlsx")
-        copyfile(source_file, "图书馆信息.xlsx")
+    def _init_files(target_file):
+        if not os.path.exists(target_file):
+            source_file = bundle_dir + "\\" + target_file
+            logger.info("初始化文件：" + target_file)
+            copyfile(source_file, target_file)
 
-    elif not os.path.exists("借阅记录.xlsx"):
-        source_file = bundle_dir + "\借阅记录.xlsx"
-        logger.info("创建文件：借阅记录.xlsx")
-        copyfile(source_file, "借阅记录.xlsx")
+    # 如果软件所在目录没有所需的Excel文件或DB文件，初始化新文件
+    for target_file in ["图书馆信息.xlsx", "借阅记录.xlsx", "library.db"]:
+        _init_files(target_file)
 
-    # 如果软件所在目录存在所需的Excel文件，备份Excel文件
-    else:
+    # 如果软件运行在用户模式，备份Excel文件
+    if getattr(sys, 'frozen', False):
         for source_file in ["图书馆信息.xlsx", "借阅记录.xlsx"]:
             target_file = base_path + "\{}_{}.xlsx".format(source_file.split(".")[0],
                                                            datetime.now().strftime('%Y-%m-%d-%H-%M'))
             logger.info("备份文件：" + target_file)
             copyfile(source_file, target_file)
-
-    # 如果软件所在目录没有所需的Excel文件，创建两个文件
-    if not os.path.exists("library.db"):
-        source_file = bundle_dir + "\library.db"
-        logger.info("创建文件：图书馆信息.xlsx")
-        copyfile(source_file, "图书馆信息.xlsx")    
 
 
 def get_connection(db_path='library.db'):
