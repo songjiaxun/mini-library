@@ -375,7 +375,7 @@ def prepare_files():
         bundle_dir = os.path.dirname(os.path.abspath(__file__))
         logger.info("软件当前运行在开发者模式！")
 
-    with open(os.path.join(bundle_dir, "VERSION"), "r") as file:
+    with open(os.path.join(bundle_dir, "VERSION.txt"), "r") as file:
         VERSION = file.read()
 
     logger.info("软件版本：" + VERSION)
