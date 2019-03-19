@@ -285,10 +285,10 @@ class Book():
         self.price = book_info["price"]
         self.total_number = book_info["total_number"]
         self.location = book_info["location"]
-        self.update_data()
         self.book_history = None
         self.checked_book_number = None
         self.avaliable_number = None
+        self.update_data()
 
     def update_data(self):
         # 借阅记录
