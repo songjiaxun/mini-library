@@ -367,8 +367,10 @@ def prepare_files():
     # 获得软件运行路径
     if getattr(sys, 'frozen', False):
         bundle_dir = sys._MEIPASS
+        logger.info("软件当前运行在用户模式！")
     else:
         bundle_dir = os.path.dirname(os.path.abspath(__file__))
+        logger.info("软件当前运行在开发者模式！")
 
     with open(os.path.join(bundle_dir, "VERSION"), "r") as file:
         VERSION = file.read()
